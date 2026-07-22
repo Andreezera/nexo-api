@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Nexo.Api/Nexo.Api.csproj" />
+    <Project Path="src/Nexo.Application/Nexo.Application.csproj" />
+    <Project Path="src/Nexo.Domain/Nexo.Domain.csproj" />
+    <Project Path="src/Nexo.Infrastructure/Nexo.Infrastructure.csproj" />
+  </Folder>
+</Solution>
