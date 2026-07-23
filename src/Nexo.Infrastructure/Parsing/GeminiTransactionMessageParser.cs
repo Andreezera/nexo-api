@@ -21,8 +21,10 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
         - "category" deve ser uma palavra curta em português (ex: Mercado, Transporte, Lazer, Saúde, Salário, Outros).
         - "description" deve ser um resumo curto do que foi comprado ou recebido.
         - Se a mensagem NÃO for sobre registrar uma transação financeira (pergunta, saudação, outro assunto),
-          defina "isFinancialTransaction" = false e não preencha os demais campos.
-        - Nunca invente valores: se não houver um valor numérico claro, defina "isFinancialTransaction" = false.
+          defina "isFinancialTransaction" = false. Mesmo assim, todos os campos são obrigatórios no JSON de saída:
+          preencha "type" com "expense", "amount" com 0, "category" e "description" com uma string vazia.
+        - Nunca invente valores: se não houver um valor numérico claro na mensagem, trate como
+          "isFinancialTransaction" = false, seguindo a regra acima para os demais campos.
         """;
 
     private static readonly object ResponseSchema = new
@@ -37,7 +39,7 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
             description = new { type = "STRING" },
             installmentCount = new { type = "INTEGER" }
         },
-        required = new[] { "isFinancialTransaction" }
+        required = new[] { "isFinancialTransaction", "type", "amount", "category", "description" }
     };
 
     private static readonly JsonSerializerOptions DeserializeOptions = new()
