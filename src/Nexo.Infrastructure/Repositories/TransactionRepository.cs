@@ -19,4 +19,9 @@ public class TransactionRepository : ITransactionRepository
             .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.OccurredAt)
             .ToListAsync(cancellationToken);
+
+    public Task<Transaction?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _context.Transactions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+
+    public void Remove(Transaction transaction) => _context.Transactions.Remove(transaction);
 }
