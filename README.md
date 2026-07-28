@@ -19,7 +19,7 @@ Exemplos de mensagens que o sistema já interpreta:
 
 ## Arquitetura
 
-Solução em 4 camadas, inspirada em Clean Architecture (porém deliberadamente simplificada — ver [ADR 0003](docs/decisions/0003-arquitetura-em-camadas-simplificada.md)):
+Solução em 4 camadas, inspirada em Clean Architecture (porém deliberadamente simplificada, evitando CQRS/MediatR e repositório genérico — cerimônias que não se justificam para um projeto solo de um semestre):
 
 ![Diagrama de arquitetura](docs/diagrams/architecture-diagram.png)
 
@@ -41,8 +41,6 @@ Visão do projeto (1º vs. 2º semestre): [docs/diagrams/roadmap-diagram.png](do
 - xUnit + Moq (testes automatizados)
 - Swagger / Swashbuckle
 
-Decisões técnicas documentadas em [`docs/decisions/`](docs/decisions/) (ADRs), incluindo as alternativas consideradas para cada escolha.
-
 ## Como rodar localmente
 
 Pré-requisitos: .NET 10 SDK, uma instância PostgreSQL (ex: Neon, gratuito), uma chave de API do Gemini (gratuita em [aistudio.google.com](https://aistudio.google.com)).
@@ -61,7 +59,7 @@ dotnet run --project src/Nexo.Api
 
 ### Testando o fluxo completo
 
-O endpoint abaixo simula o recebimento de uma mensagem do WhatsApp (o contrato de entrada é inspirado no payload real do WhatsApp Cloud API — ver [ADR 0004](docs/decisions/0004-simulacao-do-webhook-whatsapp.md)):
+O endpoint abaixo simula o recebimento de uma mensagem do WhatsApp (o contrato de entrada é inspirado no payload real do WhatsApp Cloud API, para que a integração real no futuro seja só uma troca de webhook, sem alterar a lógica de negócio):
 
 ```bash
 curl -X POST http://localhost:5080/api/webhook/whatsapp \
@@ -92,7 +90,6 @@ tests/
 tools/
   Nexo.GeminiEval/      avaliação de acurácia do parser (manual)
 docs/
-  decisions/            ADRs (registros de decisão arquitetural)
   diagrams/              diagramas de arquitetura, modelo de dados e visão do projeto
   avaliacao-gemini.md    resultado da avaliação de acurácia
 ```
