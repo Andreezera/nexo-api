@@ -7,7 +7,7 @@ public class InstallmentPlan
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
     public string Description { get; private set; } = default!;
-    public string Category { get; private set; } = default!;
+    public TransactionCategory Category { get; private set; }
     public decimal TotalAmount { get; private set; }
     public int InstallmentCount { get; private set; }
     public DateTime PurchaseDate { get; private set; }
@@ -21,7 +21,7 @@ public class InstallmentPlan
     public static InstallmentPlan Create(
         Guid userId,
         string description,
-        string category,
+        TransactionCategory category,
         decimal totalAmount,
         int installmentCount,
         DateTime purchaseDate)
@@ -36,7 +36,7 @@ public class InstallmentPlan
             Id = Guid.NewGuid(),
             UserId = userId,
             Description = description,
-            Category = string.IsNullOrWhiteSpace(category) ? "Outros" : category,
+            Category = category,
             TotalAmount = totalAmount,
             InstallmentCount = installmentCount,
             PurchaseDate = purchaseDate,
