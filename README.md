@@ -57,11 +57,11 @@ dotnet ef database update --project src/Nexo.Infrastructure --startup-project sr
 dotnet run --project src/Nexo.Api
 ```
 
-Depois de rodar, abra **http://localhost:5161** no navegador — o Swagger UI abre direto na raiz, com todos os endpoints documentados e testáveis por ali mesmo.
+Depois de rodar, abra **https://localhost:7117/index.html** no navegador — o Swagger UI abre com todos os endpoints documentados e testáveis por ali mesmo. (Evite acessar pela porta http 5161: a spec do Swagger é montada em cima da porta https, então testar "Try it out" a partir da 5161 dispara um erro de CORS por serem origens diferentes.)
 
 ### Testando o fluxo completo
 
-O endpoint abaixo simula o recebimento de uma mensagem do WhatsApp (o contrato de entrada é inspirado no payload real do WhatsApp Cloud API, para que a integração real no futuro seja só uma troca de webhook, sem alterar a lógica de negócio):
+O endpoint abaixo simula o recebimento de uma mensagem do WhatsApp (o contrato de entrada é inspirado no payload real do WhatsApp Cloud API, para que a integração real no futuro seja só uma troca de webhook, sem alterar a lógica de negócio). Via `curl` não há restrição de CORS (é uma limitação só de navegador), então qualquer uma das portas funciona:
 
 ```bash
 curl -X POST http://localhost:5161/api/webhook/whatsapp \
