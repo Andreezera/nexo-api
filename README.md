@@ -53,16 +53,18 @@ dotnet user-secrets set "Gemini:ApiKey" "<sua chave>" --project src/Nexo.Api
 # Aplicar migrations
 dotnet ef database update --project src/Nexo.Infrastructure --startup-project src/Nexo.Api
 
-# Rodar a API (Swagger disponível na raiz)
+# Rodar a API
 dotnet run --project src/Nexo.Api
 ```
+
+Depois de rodar, abra **http://localhost:5161** no navegador — o Swagger UI abre direto na raiz, com todos os endpoints documentados e testáveis por ali mesmo.
 
 ### Testando o fluxo completo
 
 O endpoint abaixo simula o recebimento de uma mensagem do WhatsApp (o contrato de entrada é inspirado no payload real do WhatsApp Cloud API, para que a integração real no futuro seja só uma troca de webhook, sem alterar a lógica de negócio):
 
 ```bash
-curl -X POST http://localhost:5080/api/webhook/whatsapp \
+curl -X POST http://localhost:5161/api/webhook/whatsapp \
   -H "Content-Type: application/json" \
   -d '{"from":"5511999999999","text":{"body":"gastei 30 reais no mercado"}}'
 ```
@@ -73,7 +75,7 @@ curl -X POST http://localhost:5080/api/webhook/whatsapp \
 dotnet test tests/Nexo.Tests
 ```
 
-13 testes cobrindo a regra de divisão/arredondamento do parcelamento (`Nexo.Domain`) e a orquestração do `MessageProcessingService` com dependências mockadas (`Nexo.Application`).
+28 testes cobrindo a regra de divisão/arredondamento do parcelamento e as regras de edição/remoção lógica da transação (`Nexo.Domain`), a orquestração do `MessageProcessingService` com dependências mockadas (`Nexo.Application`), a extração de data a partir de referências temporais na mensagem (`Nexo.Infrastructure`) e os endpoints de edição/remoção de transações (`Nexo.Api`).
 
 Também há uma ferramenta de avaliação de acurácia do parser via Gemini (`tools/Nexo.GeminiEval`, não faz parte da suíte automática por depender de rede real) — resultado documentado em [`docs/avaliacao-gemini.md`](docs/avaliacao-gemini.md).
 
