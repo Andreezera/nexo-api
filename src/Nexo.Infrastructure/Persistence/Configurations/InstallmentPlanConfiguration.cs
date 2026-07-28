@@ -17,6 +17,7 @@ public class InstallmentPlanConfiguration : IEntityTypeConfiguration<Installment
 
         builder.Property(p => p.Category)
             .IsRequired()
+            .HasConversion<string>()
             .HasMaxLength(50);
 
         builder.Property(p => p.TotalAmount)

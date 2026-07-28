@@ -20,7 +20,9 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
         - Se descrever um ganho/recebimento, defina "type" = "income".
         - Se mencionar parcelamento (ex: "em 10 parcelas", "parcelado em 3x"), preencha "installmentCount" com o número de parcelas
           e "amount" com o valor TOTAL da compra (não o valor de cada parcela).
-        - "category" deve ser uma palavra curta em português (ex: Mercado, Transporte, Lazer, Saúde, Salário, Outros).
+        - "category" deve ser exatamente uma das opções: Mercado, Alimentacao, Transporte, Moradia, Saude, Educacao, Lazer,
+          Vestuario, Assinaturas, Eletronicos, Salario, Freelance, Investimentos, Presente, Outros.
+          Use "Outros" quando nenhuma outra categoria se aplicar claramente.
         - "description" deve ser um resumo curto do que foi comprado ou recebido.
         - "occurredAtDate" deve ser a data em que a transação ocorreu, no formato AAAA-MM-DD, calculada a partir
           de referências temporais na mensagem (ex: "ontem", "anteontem", "semana passada", "sexta-feira passada"),
@@ -42,7 +44,16 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
             isFinancialTransaction = new { type = "BOOLEAN" },
             type = new { type = "STRING", @enum = new[] { "income", "expense" } },
             amount = new { type = "NUMBER" },
-            category = new { type = "STRING" },
+            category = new
+            {
+                type = "STRING",
+                @enum = new[]
+                {
+                    "Mercado", "Alimentacao", "Transporte", "Moradia", "Saude", "Educacao", "Lazer",
+                    "Vestuario", "Assinaturas", "Eletronicos", "Salario", "Freelance", "Investimentos",
+                    "Presente", "Outros"
+                }
+            },
             description = new { type = "STRING" },
             occurredAtDate = new { type = "STRING" },
             installmentCount = new { type = "INTEGER" }
@@ -107,18 +118,15 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
             if (extracted is null || !extracted.IsFinancialTransaction || extracted.Amount is null or <= 0)
                 return null;
 
-            var occurredAt = today;
-            if (!string.IsNullOrWhiteSpace(extracted.OccurredAtDate) &&
-                DateTime.TryParseExact(extracted.OccurredAtDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out var parsedDate))
-            {
-                occurredAt = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
-            }
+            var occurredAt = ResolveOccurredAt(extracted.OccurredAtDate, today);
+            var category = Enum.TryParse<TransactionCategory>(extracted.Category, out var parsedCategory)
+                ? parsedCategory
+                : TransactionCategory.Outros;
 
             return new ParsedTransaction(
                 Type: extracted.Type == "income" ? TransactionType.Income : TransactionType.Expense,
                 Amount: extracted.Amount.Value,
-                Category: string.IsNullOrWhiteSpace(extracted.Category) ? "Outros" : extracted.Category,
+                Category: category,
                 Description: string.IsNullOrWhiteSpace(extracted.Description) ? message : extracted.Description,
                 OccurredAt: occurredAt,
                 InstallmentCount: extracted.InstallmentCount);
@@ -128,5 +136,17 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
             _logger.LogError(ex, "Falha ao chamar a API do Gemini para interpretar a mensagem.");
             return null;
         }
+    }
+
+    public static DateTime ResolveOccurredAt(string? occurredAtDate, DateTime fallback)
+    {
+        if (!string.IsNullOrWhiteSpace(occurredAtDate) &&
+            DateTime.TryParseExact(occurredAtDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var parsedDate))
+        {
+            return DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+        }
+
+        return fallback;
     }
 }
