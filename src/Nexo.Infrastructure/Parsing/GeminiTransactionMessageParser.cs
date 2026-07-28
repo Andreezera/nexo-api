@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -9,8 +10,9 @@ namespace Nexo.Infrastructure.Parsing;
 
 public class GeminiTransactionMessageParser : ITransactionMessageParser
 {
-    private const string SystemPrompt = """
+    private static string BuildSystemPrompt(DateTime today) => $"""
         Você é um interpretador de mensagens para o NEXO, um assistente financeiro via WhatsApp usado no Brasil.
+        A data de hoje é {today:yyyy-MM-dd}.
         Analise a mensagem do usuário e extraia dados estruturados de uma transação financeira (gasto, receita ou compra parcelada), quando aplicável.
 
         Regras:
@@ -20,9 +22,14 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
           e "amount" com o valor TOTAL da compra (não o valor de cada parcela).
         - "category" deve ser uma palavra curta em português (ex: Mercado, Transporte, Lazer, Saúde, Salário, Outros).
         - "description" deve ser um resumo curto do que foi comprado ou recebido.
+        - "occurredAtDate" deve ser a data em que a transação ocorreu, no formato AAAA-MM-DD, calculada a partir
+          de referências temporais na mensagem (ex: "ontem", "anteontem", "semana passada", "sexta-feira passada"),
+          usando a data de hoje informada acima como referência. Se a mensagem não mencionar quando aconteceu,
+          use a própria data de hoje.
         - Se a mensagem NÃO for sobre registrar uma transação financeira (pergunta, saudação, outro assunto),
           defina "isFinancialTransaction" = false. Mesmo assim, todos os campos são obrigatórios no JSON de saída:
-          preencha "type" com "expense", "amount" com 0, "category" e "description" com uma string vazia.
+          preencha "type" com "expense", "amount" com 0, "category" e "description" com uma string vazia, e
+          "occurredAtDate" com a data de hoje.
         - Nunca invente valores: se não houver um valor numérico claro na mensagem, trate como
           "isFinancialTransaction" = false, seguindo a regra acima para os demais campos.
         """;
@@ -37,9 +44,10 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
             amount = new { type = "NUMBER" },
             category = new { type = "STRING" },
             description = new { type = "STRING" },
+            occurredAtDate = new { type = "STRING" },
             installmentCount = new { type = "INTEGER" }
         },
-        required = new[] { "isFinancialTransaction", "type", "amount", "category", "description" }
+        required = new[] { "isFinancialTransaction", "type", "amount", "category", "description", "occurredAtDate" }
     };
 
     private static readonly JsonSerializerOptions DeserializeOptions = new()
@@ -61,9 +69,11 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
 
     public async Task<ParsedTransaction?> ParseAsync(string message, CancellationToken cancellationToken = default)
     {
+        var today = DateTime.UtcNow;
+
         var requestBody = new
         {
-            systemInstruction = new { parts = new[] { new { text = SystemPrompt } } },
+            systemInstruction = new { parts = new[] { new { text = BuildSystemPrompt(today) } } },
             contents = new[] { new { parts = new[] { new { text = message } } } },
             generationConfig = new
             {
@@ -97,12 +107,20 @@ public class GeminiTransactionMessageParser : ITransactionMessageParser
             if (extracted is null || !extracted.IsFinancialTransaction || extracted.Amount is null or <= 0)
                 return null;
 
+            var occurredAt = today;
+            if (!string.IsNullOrWhiteSpace(extracted.OccurredAtDate) &&
+                DateTime.TryParseExact(extracted.OccurredAtDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var parsedDate))
+            {
+                occurredAt = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+            }
+
             return new ParsedTransaction(
                 Type: extracted.Type == "income" ? TransactionType.Income : TransactionType.Expense,
                 Amount: extracted.Amount.Value,
                 Category: string.IsNullOrWhiteSpace(extracted.Category) ? "Outros" : extracted.Category,
                 Description: string.IsNullOrWhiteSpace(extracted.Description) ? message : extracted.Description,
-                OccurredAt: DateTime.UtcNow,
+                OccurredAt: occurredAt,
                 InstallmentCount: extracted.InstallmentCount);
         }
         catch (Exception ex)

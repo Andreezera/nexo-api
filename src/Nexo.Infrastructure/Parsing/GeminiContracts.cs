@@ -27,5 +27,6 @@ internal class ExtractedTransactionDto
     public decimal? Amount { get; set; }
     public string? Category { get; set; }
     public string? Description { get; set; }
+    public string? OccurredAtDate { get; set; }
     public int? InstallmentCount { get; set; }
 }

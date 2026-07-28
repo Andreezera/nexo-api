@@ -40,4 +40,16 @@ public class Transaction
         InstallmentPlanId = installmentPlanId;
         CreatedAt = DateTime.UtcNow;
     }
+
+    public void Update(TransactionType type, decimal amount, string category, string description, DateTime occurredAt)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("O valor da transação deve ser maior que zero.", nameof(amount));
+
+        Type = type;
+        Amount = amount;
+        Category = string.IsNullOrWhiteSpace(category) ? "Outros" : category;
+        Description = description;
+        OccurredAt = occurredAt;
+    }
 }

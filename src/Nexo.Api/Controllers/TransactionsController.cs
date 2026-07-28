@@ -62,6 +62,24 @@ public class TransactionsController : ControllerBase
     }
 
     /// <summary>
+    /// Corrige uma transação lançada com dados errados (valor, categoria, descrição, tipo ou data).
+    /// </summary>
+    [HttpPut("~/api/transactions/{id:guid}")]
+    public async Task<ActionResult<TransactionResponse>> Update(
+        Guid id, UpdateTransactionRequest request, CancellationToken cancellationToken)
+    {
+        var transaction = await _transactionRepository.GetByIdAsync(id, cancellationToken);
+        if (transaction is null)
+            return NotFound();
+
+        transaction.Update(request.Type, request.Amount, request.Category, request.Description, request.OccurredAt);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Ok(new TransactionResponse(
+            transaction.Id, transaction.Type, transaction.Amount, transaction.Category, transaction.Description, transaction.OccurredAt));
+    }
+
+    /// <summary>
     /// Remove uma transação lançada por engano.
     /// </summary>
     [HttpDelete("~/api/transactions/{id:guid}")]
