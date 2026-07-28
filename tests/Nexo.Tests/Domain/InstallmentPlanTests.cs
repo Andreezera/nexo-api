@@ -11,7 +11,7 @@ public class InstallmentPlanTests
     [Fact]
     public void Create_WhenDivisionIsExact_SplitsAmountEvenly()
     {
-        var plan = InstallmentPlan.Create(UserId, "Notebook", "Eletrônicos", 3000m, 10, new DateTime(2026, 7, 23));
+        var plan = InstallmentPlan.Create(UserId, "Notebook", TransactionCategory.Eletronicos, 3000m, 10, new DateTime(2026, 7, 23));
 
         Assert.Equal(10, plan.Transactions.Count);
         Assert.All(plan.Transactions, t => Assert.Equal(300m, t.Amount));
@@ -21,7 +21,7 @@ public class InstallmentPlanTests
     public void Create_WhenDivisionHasRemainder_LastInstallmentAbsorbsIt()
     {
         // 100 / 3 = 33.33 (x2) + resto -> soma das parcelas deve bater exatamente com o total
-        var plan = InstallmentPlan.Create(UserId, "Compra", "Outros", 100m, 3, new DateTime(2026, 7, 23));
+        var plan = InstallmentPlan.Create(UserId, "Compra", TransactionCategory.Outros, 100m, 3, new DateTime(2026, 7, 23));
 
         var amounts = plan.Transactions.Select(t => t.Amount).ToList();
         Assert.Equal(100m, amounts.Sum());
@@ -34,7 +34,7 @@ public class InstallmentPlanTests
     public void Create_GeneratesInstallmentsOneMonthApart()
     {
         var purchaseDate = new DateTime(2026, 7, 23);
-        var plan = InstallmentPlan.Create(UserId, "Notebook", "Eletrônicos", 300m, 3, purchaseDate);
+        var plan = InstallmentPlan.Create(UserId, "Notebook", TransactionCategory.Eletronicos, 300m, 3, purchaseDate);
 
         var dates = plan.Transactions.OrderBy(t => t.OccurredAt).Select(t => t.OccurredAt).ToList();
         Assert.Equal(purchaseDate, dates[0]);
@@ -45,7 +45,7 @@ public class InstallmentPlanTests
     [Fact]
     public void Create_MarksAllGeneratedTransactionsAsExpense()
     {
-        var plan = InstallmentPlan.Create(UserId, "Notebook", "Eletrônicos", 300m, 3, DateTime.UtcNow);
+        var plan = InstallmentPlan.Create(UserId, "Notebook", TransactionCategory.Eletronicos, 300m, 3, DateTime.UtcNow);
 
         Assert.All(plan.Transactions, t => Assert.Equal(TransactionType.Expense, t.Type));
     }
@@ -56,7 +56,7 @@ public class InstallmentPlanTests
     public void Create_WhenTotalAmountIsNotPositive_Throws(decimal invalidAmount)
     {
         Assert.Throws<ArgumentException>(() =>
-            InstallmentPlan.Create(UserId, "Compra", "Outros", invalidAmount, 3, DateTime.UtcNow));
+            InstallmentPlan.Create(UserId, "Compra", TransactionCategory.Outros, invalidAmount, 3, DateTime.UtcNow));
     }
 
     [Theory]
@@ -65,6 +65,6 @@ public class InstallmentPlanTests
     public void Create_WhenInstallmentCountIsNotPositive_Throws(int invalidCount)
     {
         Assert.Throws<ArgumentException>(() =>
-            InstallmentPlan.Create(UserId, "Compra", "Outros", 300m, invalidCount, DateTime.UtcNow));
+            InstallmentPlan.Create(UserId, "Compra", TransactionCategory.Outros, 300m, invalidCount, DateTime.UtcNow));
     }
 }

@@ -38,7 +38,7 @@ public class MessageProcessingServiceTests
     public async Task ProcessAsync_WhenPhoneNumberIsUnknown_CreatesNewUser()
     {
         _parser.Setup(p => p.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 30m, "Mercado", "Mercado", DateTime.UtcNow, null));
+            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 30m, TransactionCategory.Mercado, "Mercado", DateTime.UtcNow, null));
         _userRepository.Setup(u => u.GetByPhoneNumberAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
@@ -52,7 +52,7 @@ public class MessageProcessingServiceTests
     {
         var existingUser = new User("5511999999999");
         _parser.Setup(p => p.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 30m, "Mercado", "Mercado", DateTime.UtcNow, null));
+            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 30m, TransactionCategory.Mercado, "Mercado", DateTime.UtcNow, null));
         _userRepository.Setup(u => u.GetByPhoneNumberAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingUser);
 
@@ -65,7 +65,7 @@ public class MessageProcessingServiceTests
     public async Task ProcessAsync_WhenMessageHasNoInstallments_SavesSingleTransactionOnly()
     {
         _parser.Setup(p => p.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 30m, "Mercado", "Mercado", DateTime.UtcNow, null));
+            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 30m, TransactionCategory.Mercado, "Mercado", DateTime.UtcNow, null));
         _userRepository.Setup(u => u.GetByPhoneNumberAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new User("5511999999999"));
 
@@ -81,7 +81,7 @@ public class MessageProcessingServiceTests
     public async Task ProcessAsync_WhenMessageHasInstallments_SavesInstallmentPlanInsteadOfSingleTransaction()
     {
         _parser.Setup(p => p.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 3000m, "Eletrônicos", "Notebook", DateTime.UtcNow, 10));
+            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 3000m, TransactionCategory.Eletronicos, "Notebook", DateTime.UtcNow, 10));
         _userRepository.Setup(u => u.GetByPhoneNumberAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new User("5511999999999"));
 
