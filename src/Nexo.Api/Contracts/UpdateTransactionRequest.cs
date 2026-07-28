@@ -5,6 +5,6 @@ namespace Nexo.Api.Contracts;
 public record UpdateTransactionRequest(
     TransactionType Type,
     decimal Amount,
-    string Category,
+    TransactionCategory Category,
     string Description,
     DateTime OccurredAt);

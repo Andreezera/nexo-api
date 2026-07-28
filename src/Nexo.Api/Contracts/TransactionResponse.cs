@@ -6,6 +6,6 @@ public record TransactionResponse(
     Guid Id,
     TransactionType Type,
     decimal Amount,
-    string Category,
+    TransactionCategory Category,
     string Description,
     DateTime OccurredAt);

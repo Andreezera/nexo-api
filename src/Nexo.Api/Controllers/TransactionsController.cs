@@ -89,7 +89,7 @@ public class TransactionsController : ControllerBase
         if (transaction is null)
             return NotFound();
 
-        _transactionRepository.Remove(transaction);
+        transaction.Delete();
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return NoContent();
