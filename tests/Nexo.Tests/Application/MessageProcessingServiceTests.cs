@@ -1,5 +1,6 @@
 using Moq;
 using Nexo.Application.Abstractions;
+using Nexo.Application.Budgets;
 using Nexo.Application.Parsing;
 using Nexo.Application.Transactions;
 using Nexo.Domain.Entities;
@@ -15,10 +16,11 @@ public class MessageProcessingServiceTests
     private readonly Mock<ITransactionRepository> _transactionRepository = new();
     private readonly Mock<IInstallmentPlanRepository> _installmentPlanRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<IBudgetAlertService> _budgetAlertService = new();
 
     private MessageProcessingService CreateService() => new(
         _parser.Object, _userRepository.Object, _transactionRepository.Object,
-        _installmentPlanRepository.Object, _unitOfWork.Object);
+        _installmentPlanRepository.Object, _unitOfWork.Object, _budgetAlertService.Object);
 
     [Fact]
     public async Task ProcessAsync_WhenParserDoesNotRecognizeMessage_ReturnsNotUnderstoodAndTouchesNoRepository()
@@ -91,5 +93,36 @@ public class MessageProcessingServiceTests
         Assert.Contains("10x", result.ReplyMessage);
         _installmentPlanRepository.Verify(p => p.AddAsync(It.IsAny<InstallmentPlan>(), It.IsAny<CancellationToken>()), Times.Once);
         _transactionRepository.Verify(t => t.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WhenExpenseCrossesBudgetLimit_AppendsAlertToReply()
+    {
+        _parser.Setup(p => p.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ParsedTransaction(TransactionType.Expense, 450m, TransactionCategory.Mercado, "Mercado", DateTime.UtcNow, null));
+        _userRepository.Setup(u => u.GetByPhoneNumberAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User("5511999999999"));
+        _budgetAlertService.Setup(b => b.BuildAlertAsync(
+                It.IsAny<Guid>(), TransactionCategory.Mercado, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Atenção, você estourou o limite de Mercado do mês.");
+
+        var result = await CreateService().ProcessAsync("5511999999999", "gastei 450 no mercado");
+
+        Assert.Contains("Despesa registrada", result.ReplyMessage);
+        Assert.Contains("estourou o limite de Mercado", result.ReplyMessage);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WhenMessageIsIncome_DoesNotCheckBudgetLimits()
+    {
+        _parser.Setup(p => p.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ParsedTransaction(TransactionType.Income, 500m, TransactionCategory.Salario, "Salário", DateTime.UtcNow, null));
+        _userRepository.Setup(u => u.GetByPhoneNumberAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User("5511999999999"));
+
+        await CreateService().ProcessAsync("5511999999999", "recebi 500 de salário");
+
+        _budgetAlertService.Verify(b => b.BuildAlertAsync(
+            It.IsAny<Guid>(), It.IsAny<TransactionCategory>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

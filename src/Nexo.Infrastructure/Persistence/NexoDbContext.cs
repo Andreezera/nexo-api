@@ -10,6 +10,7 @@ public class NexoDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<InstallmentPlan> InstallmentPlans => Set<InstallmentPlan>();
+    public DbSet<BudgetLimit> BudgetLimits => Set<BudgetLimit>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
