@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Nexo.Application.Abstractions;
 using Nexo.Application.Budgets;
+using Nexo.Application.Projections;
 using Nexo.Application.Parsing;
 using Nexo.Application.Transactions;
 using Nexo.Infrastructure.Parsing;
@@ -20,6 +21,7 @@ builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IInstallmentPlanRepository, InstallmentPlanRepository>();
 builder.Services.AddScoped<IBudgetLimitRepository, BudgetLimitRepository>();
 builder.Services.AddScoped<IBudgetAlertService, BudgetAlertService>();
+builder.Services.AddScoped<IPurchaseProjectionService, PurchaseProjectionService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<MessageProcessingService>();
 
