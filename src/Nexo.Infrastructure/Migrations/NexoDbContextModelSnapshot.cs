@@ -53,6 +53,35 @@ namespace Nexo.Infrastructure.Migrations
                     b.ToTable("BudgetLimits", (string)null);
                 });
 
+            modelBuilder.Entity("Nexo.Domain.Entities.ConversationMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("ConversationMessages", (string)null);
+                });
+
             modelBuilder.Entity("Nexo.Domain.Entities.InstallmentPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -168,6 +197,15 @@ namespace Nexo.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("Nexo.Domain.Entities.BudgetLimit", b =>
+                {
+                    b.HasOne("Nexo.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Nexo.Domain.Entities.ConversationMessage", b =>
                 {
                     b.HasOne("Nexo.Domain.Entities.User", null)
                         .WithMany()

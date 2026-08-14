@@ -6,7 +6,7 @@ using Nexo.Domain.Enums;
 
 namespace Nexo.Application.Transactions;
 
-public class MessageProcessingService
+public class MessageProcessingService : ITransactionRegistrar
 {
     private readonly ITransactionMessageParser _parser;
     private readonly IUserRepository _userRepository;
@@ -42,6 +42,14 @@ public class MessageProcessingService
                 "Não consegui entender essa mensagem. Tente algo como \"gastei 30 reais no mercado\" ou \"ganhei 500 reais hoje\".");
         }
 
+        return await RegisterAsync(phoneNumber, parsed, cancellationToken);
+    }
+
+    // Registra uma transação já interpretada (pela IA ou por outro meio). Compra com mais de uma
+    // parcela vira um InstallmentPlan, que gera as transações de cada parcela.
+    public async Task<RegisterMessageResult> RegisterAsync(
+        string phoneNumber, ParsedTransaction parsed, CancellationToken cancellationToken = default)
+    {
         var user = await _userRepository.GetByPhoneNumberAsync(phoneNumber, cancellationToken);
         if (user is null)
         {

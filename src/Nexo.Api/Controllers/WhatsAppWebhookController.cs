@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Nexo.Api.Contracts;
-using Nexo.Application.Transactions;
+using Nexo.Application.Conversation;
 
 namespace Nexo.Api.Controllers;
 
@@ -8,21 +8,22 @@ namespace Nexo.Api.Controllers;
 [Route("api/webhook/whatsapp")]
 public class WhatsAppWebhookController : ControllerBase
 {
-    private readonly MessageProcessingService _messageProcessingService;
+    private readonly ConversationService _conversationService;
 
-    public WhatsAppWebhookController(MessageProcessingService messageProcessingService) =>
-        _messageProcessingService = messageProcessingService;
+    public WhatsAppWebhookController(ConversationService conversationService) =>
+        _conversationService = conversationService;
 
     /// <summary>
-    /// Simula o recebimento de uma mensagem do WhatsApp. Enquanto a integração real com o
-    /// WhatsApp Cloud API não está conectada, este endpoint pode ser chamado diretamente
-    /// (via Swagger/Postman) para demonstrar o fluxo completo de registro de transações.
+    /// Simula o recebimento de uma mensagem de texto do WhatsApp. A mensagem passa pela IA, que decide se é
+    /// um lançamento (gasto, receita, compra parcelada) ou uma pergunta/comando sobre os dados do usuário,
+    /// levando em conta as últimas mensagens da conversa.
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<WhatsAppWebhookResponse>> ReceiveMessage(
         IncomingWhatsAppMessage message, CancellationToken cancellationToken)
     {
-        var result = await _messageProcessingService.ProcessAsync(message.From, message.Text.Body, cancellationToken);
+        var result = await _conversationService.HandleAsync(
+            message.From, MessageContent.FromText(message.Text.Body), cancellationToken);
         return Ok(new WhatsAppWebhookResponse(result.Understood, result.ReplyMessage));
     }
 }

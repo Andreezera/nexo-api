@@ -11,6 +11,7 @@ public class NexoDbContext : DbContext
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<InstallmentPlan> InstallmentPlans => Set<InstallmentPlan>();
     public DbSet<BudgetLimit> BudgetLimits => Set<BudgetLimit>();
+    public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
