@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Nexo.Application.Abstractions;
 using Nexo.Application.Budgets;
+using Nexo.Api.WhatsApp;
 using Nexo.Application.Conversation;
+using Nexo.Application.WhatsApp;
+using Nexo.Infrastructure.WhatsApp;
 using Nexo.Application.Projections;
 using Nexo.Application.Parsing;
 using Nexo.Application.Transactions;
@@ -18,6 +21,12 @@ builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection("Gemi
 builder.Services.AddHttpClient<ITransactionMessageParser, GeminiTransactionMessageParser>();
 builder.Services.AddHttpClient<IMessageIntentParser, GeminiIntentParser>();
 
+builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection("WhatsApp"));
+builder.Services.AddHttpClient<IWhatsAppMessenger, WhatsAppCloudMessenger>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<WhatsAppMessageQueue>();
+builder.Services.AddHostedService<WhatsAppMessageWorker>();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IInstallmentPlanRepository, InstallmentPlanRepository>();
@@ -29,6 +38,7 @@ builder.Services.AddScoped<IConversationHistoryRepository, ConversationHistoryRe
 builder.Services.AddScoped<MessageProcessingService>();
 builder.Services.AddScoped<ITransactionRegistrar>(sp => sp.GetRequiredService<MessageProcessingService>());
 builder.Services.AddScoped<ConversationService>();
+builder.Services.AddScoped<WhatsAppMessageHandler>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
