@@ -71,5 +71,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGet("/privacy", () => Results.Content(Nexo.Api.PrivacyPolicyPage.Html, "text/html; charset=utf-8"))
+    .ExcludeFromDescription();
 
 app.Run();
