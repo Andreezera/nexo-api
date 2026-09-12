@@ -66,6 +66,14 @@ public class WhatsAppCloudWebhookController : ControllerBase
             return Unauthorized();
         }
 
+        // Eventos de status (enviado, entregue, lido, falhou) não geram resposta, mas as falhas de entrega
+        // só aparecem aqui, então ficam registradas no log.
+        var text = System.Text.Encoding.UTF8.GetString(body);
+        if (text.Contains("\"statuses\"", StringComparison.Ordinal))
+        {
+            _logger.LogInformation("Status de entrega do WhatsApp: {Payload}", text);
+        }
+
         foreach (var message in WhatsAppCloudPayloadParser.Parse(body))
         {
             // A Meta reenvia o webhook se demorar para receber o 200, então o mesmo id pode chegar mais de uma vez.
