@@ -150,8 +150,8 @@ public class ConversationService
         {
             var inCategory = expenses.Where(t => t.Category == category).Sum(t => t.Amount);
             return inCategory == 0
-                ? $"Não encontrei gastos em {category} em {monthLabel}."
-                : $"Em {monthLabel}, você gastou {Money(inCategory)} em {category}.";
+                ? $"Não encontrei gastos em {category.Value.ToDisplayName()} em {monthLabel}."
+                : $"Em {monthLabel}, você gastou {Money(inCategory)} em {category.Value.ToDisplayName()}.";
         }
 
         if (expenses.Count == 0)
@@ -163,7 +163,7 @@ public class ConversationService
             .Select(g => new { Category = g.Key, Total = g.Sum(t => t.Amount) })
             .OrderByDescending(g => g.Total)
             .Take(3)
-            .Select(g => $"{g.Category} {Money(g.Total)}");
+            .Select(g => $"{g.Category.ToDisplayName()} {Money(g.Total)}");
 
         return $"Em {monthLabel}, você gastou {Money(total)} no total. Maiores categorias: {string.Join(", ", top)}.";
     }
@@ -219,7 +219,7 @@ public class ConversationService
             return "Você ainda não definiu limites de gasto. Pode pedir assim: \"define limite de 500 para mercado\".";
 
         var lines = statuses.Select(s =>
-            $"{s.Category}: {Money(s.Spent)} de {Money(s.MonthlyLimit)} ({s.PercentUsed * 100:F0}%){(s.PercentUsed >= 1m ? ", estourado" : "")}");
+            $"{s.Category.ToDisplayName()}: {Money(s.Spent)} de {Money(s.MonthlyLimit)} ({s.PercentUsed * 100:F0}%){(s.PercentUsed >= 1m ? ", estourado" : "")}");
         return "Seus limites deste mês:\n" + string.Join("\n", lines);
     }
 
@@ -239,7 +239,7 @@ public class ConversationService
             limit.UpdateLimit(amount.Value);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return new RegisterMessageResult(true, $"Limite de {category} definido em {Money(amount.Value)} por mês.");
+        return new RegisterMessageResult(true, $"Limite de {category.Value.ToDisplayName()} definido em {Money(amount.Value)} por mês.");
     }
 
     private static string Money(decimal value) => $"R$ {value:F2}";

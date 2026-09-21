@@ -79,7 +79,7 @@ public class MessageProcessingService : ITransactionRegistrar
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var label = parsed.Type == TransactionType.Income ? "Receita" : "Despesa";
-        var reply = $"{label} registrada: R$ {parsed.Amount:F2} em {parsed.Category}.";
+        var reply = $"{label} registrada: R$ {parsed.Amount:F2} em {parsed.Category.ToDisplayName()}.";
         return new RegisterMessageResult(true, await AppendBudgetAlertAsync(reply, user.Id, parsed, cancellationToken));
     }
 

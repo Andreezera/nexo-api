@@ -50,10 +50,10 @@ public class BudgetAlertService : IBudgetAlertService
             return null;
 
         if (status.PercentUsed >= 1m)
-            return $"Atenção, você estourou o limite de {status.Category} do mês. Gastou R$ {status.Spent:F2} de R$ {status.MonthlyLimit:F2}.";
+            return $"Atenção, você estourou o limite de {status.Category.ToDisplayName()} do mês. Gastou R$ {status.Spent:F2} de R$ {status.MonthlyLimit:F2}.";
 
         if (status.PercentUsed >= WarningThreshold)
-            return $"Atenção, você já usou {status.PercentUsed * 100:F0}% do limite de {status.Category} do mês. Gastou R$ {status.Spent:F2} de R$ {status.MonthlyLimit:F2}.";
+            return $"Atenção, você já usou {status.PercentUsed * 100:F0}% do limite de {status.Category.ToDisplayName()} do mês. Gastou R$ {status.Spent:F2} de R$ {status.MonthlyLimit:F2}.";
 
         return null;
     }
