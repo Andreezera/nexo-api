@@ -483,3 +483,7 @@ $RECYCLE.BIN/
 
 # Claude Code local session settings (machine/session-specific, not project config)
 .claude/
+
+# Logs e segredos exportados do modo demonstracao
+scripts/logs/
+segredos*.ps1

@@ -118,3 +118,19 @@ Limitações desta avaliação:
 - O conjunto tem só mensagens de texto e 39 casos, com uma execução por modelo. Como a IA não é determinística, diferenças pequenas não seriam detectadas.
 - Áudio e foto de nota fiscal foram testados manualmente (um caso de cada) e não entram nesta tabela.
 - Os modelos `gemini-2.5-flash-lite`, `gemini-2.5-flash` e `gemini-2.5-pro` foram descartados da comparação porque a API os recusa para contas novas (erro 404), por isso a comparação usa a linha 3.x.
+
+## Medição com áudio e foto, e troca do modelo padrão
+
+Depois de testes reais pelo WhatsApp, uma resposta com áudio levou cerca de 12 s, e uma de texto cerca de 6 s. Para reduzir isso foram medidos quatro modelos com texto, áudio e foto de nota fiscal (3 execuções cada, mediana abaixo). As entradas foram uma mensagem de texto, um áudio sintético e duas notas fiscais reais (uma com 1 item e uma de supermercado com 9 itens). O prompt dessa medição é uma versão simplificada do usado no NEXO, então os tempos servem para comparar os modelos entre si.
+
+| Modelo | Texto | Áudio | Foto (1 item) | Foto (9 itens) | Acertos |
+|---|---|---|---|---|---|
+| gemini-flash-latest (anterior) | 6,9 s | 5,0 s | 6,1 s | 5,0 s | 12/12 |
+| gemini-3.5-flash | 3,3 s | 3,2 s | 3,6 s | 4,1 s | 12/12 |
+| gemini-3.1-flash-lite | 0,9 s | 1,8 s | 1,9 s | 1,7 s | 12/12 |
+| gemini-3.5-flash-lite | 0,8 s | 1,7 s | 1,9 s | 1,7 s | 12/12 |
+| gemini-flash-lite-latest | 0,8 s | 1,5 s | 1,6 s | 1,7 s | 12/12 |
+
+O apelido `gemini-flash-lite-latest` também foi executado no conjunto completo de 39 casos, com o prompt real do NEXO, e acertou 39/39 (intenção 39/39) com latência média de 0,8 s.
+
+Decisão: o modelo padrão passou de `gemini-flash-latest` para `gemini-flash-lite-latest`. O apelido foi preferido a um nome fixo porque nomes fixos de modelo são aposentados pelo provedor. O ganho foi de 3 a 6 vezes no tempo da chamada à IA, sem queda de acerto nos testes feitos. A limitação é a mesma de antes, os conjuntos são pequenos e com poucas execuções.
