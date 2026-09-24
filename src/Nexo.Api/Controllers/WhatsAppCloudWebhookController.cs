@@ -74,6 +74,16 @@ public class WhatsAppCloudWebhookController : ControllerBase
             _logger.LogInformation("Status de entrega do WhatsApp: {Payload}", text);
         }
 
+        // O carimbo de hora da mensagem é da Meta. Registrar o atraso até aqui mostra quanto tempo a mensagem levou para chegar.
+        var received = System.Text.RegularExpressions.Regex.Match(text, "\"messages\":\\[.*?\"timestamp\":\"(\\d+)\"");
+        if (received.Success)
+        {
+            var sentAt = DateTimeOffset.FromUnixTimeSeconds(long.Parse(received.Groups[1].Value));
+            _logger.LogInformation(
+                "Mensagem recebida da Meta. Hora na Meta: {SentAt:HH:mm:ss}, hora no servidor: {Now:HH:mm:ss}.",
+                sentAt, DateTimeOffset.UtcNow);
+        }
+
         foreach (var message in WhatsAppCloudPayloadParser.Parse(body))
         {
             // A Meta reenvia o webhook se demorar para receber o 200, então o mesmo id pode chegar mais de uma vez.

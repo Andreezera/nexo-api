@@ -23,9 +23,12 @@ public class WhatsAppMessageWorker : BackgroundService
         {
             try
             {
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 using var scope = _scopeFactory.CreateScope();
                 var handler = scope.ServiceProvider.GetRequiredService<WhatsAppMessageHandler>();
                 await handler.HandleAsync(message, stoppingToken);
+                _logger.LogInformation(
+                    "Mensagem {MessageId} processada e respondida em {Elapsed} ms.", message.MessageId, stopwatch.ElapsedMilliseconds);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
