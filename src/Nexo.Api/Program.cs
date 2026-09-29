@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Nexo.Application.Abstractions;
 using Nexo.Application.Budgets;
+using Nexo.Application.Charts;
+using Nexo.Application.Reports;
+using Nexo.Infrastructure.Charts;
 using Nexo.Api.WhatsApp;
 using Nexo.Application.Conversation;
 using Nexo.Application.WhatsApp;
@@ -33,6 +36,9 @@ builder.Services.AddScoped<IInstallmentPlanRepository, InstallmentPlanRepository
 builder.Services.AddScoped<IBudgetLimitRepository, BudgetLimitRepository>();
 builder.Services.AddScoped<IBudgetAlertService, BudgetAlertService>();
 builder.Services.AddScoped<IPurchaseProjectionService, PurchaseProjectionService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IChartService, ChartService>();
+builder.Services.AddSingleton<IChartRenderer, SkiaChartRenderer>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IConversationHistoryRepository, ConversationHistoryRepository>();
 builder.Services.AddScoped<MessageProcessingService>();

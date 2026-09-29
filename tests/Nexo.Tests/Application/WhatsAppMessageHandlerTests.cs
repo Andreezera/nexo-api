@@ -1,8 +1,10 @@
 using Moq;
 using Nexo.Application.Abstractions;
 using Nexo.Application.Budgets;
+using Nexo.Application.Charts;
 using Nexo.Application.Conversation;
 using Nexo.Application.Projections;
+using Nexo.Application.Reports;
 using Nexo.Application.Transactions;
 using Nexo.Application.WhatsApp;
 using Nexo.Domain.Entities;
@@ -30,7 +32,43 @@ public class WhatsAppMessageHandlerTests
         _conversation = new ConversationService(
             _intentParser.Object, Mock.Of<ITransactionRegistrar>(), userRepository.Object, Mock.Of<ITransactionRepository>(),
             Mock.Of<IBudgetLimitRepository>(), Mock.Of<IBudgetAlertService>(), Mock.Of<IPurchaseProjectionService>(),
-            history.Object, Mock.Of<IUnitOfWork>());
+            Mock.Of<IReportService>(), _chartService.Object, history.Object, Mock.Of<IUnitOfWork>());
+    }
+
+    private readonly Mock<IChartService> _chartService = new();
+
+    private void SetupChartRequest()
+    {
+        _intentParser.Setup(p => p.ParseAsync(It.IsAny<MessageContent>(), It.IsAny<IReadOnlyList<ConversationMessage>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MessageIntent(IntentType.QueryChart, Chart: ChartKind.Categories));
+        _chartService.Setup(c => c.BuildCategoryChartAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChartResult(new byte[] { 9, 9, 9 }, "legenda do gráfico"));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheReplyHasAnImage_SendsTheImageWithTheCaption()
+    {
+        SetupChartRequest();
+
+        await CreateHandler().HandleAsync(new WhatsAppInboundMessage("id-img", Phone, "text", Text: "gráfico"));
+
+        _messenger.Verify(m => m.SendImageAsync(
+            Phone, It.Is<byte[]>(b => b.SequenceEqual(new byte[] { 9, 9, 9 })), "image/png", "legenda do gráfico",
+            It.IsAny<CancellationToken>()), Times.Once);
+        _messenger.Verify(m => m.SendTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSendingTheImageFails_FallsBackToTheCaptionAsText()
+    {
+        SetupChartRequest();
+        _messenger.Setup(m => m.SendImageAsync(
+                It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("falhou"));
+
+        await CreateHandler().HandleAsync(new WhatsAppInboundMessage("id-img2", Phone, "text", Text: "gráfico"));
+
+        _messenger.Verify(m => m.SendTextAsync(Phone, "legenda do gráfico", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private readonly ConversationService _conversation;

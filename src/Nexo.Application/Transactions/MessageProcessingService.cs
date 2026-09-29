@@ -3,6 +3,7 @@ using Nexo.Application.Budgets;
 using Nexo.Application.Parsing;
 using Nexo.Domain.Entities;
 using Nexo.Domain.Enums;
+using static Nexo.Application.Messaging.MessageFormatter;
 
 namespace Nexo.Application.Transactions;
 
@@ -67,7 +68,8 @@ public class MessageProcessingService : ITransactionRegistrar
 
             var installmentValue = plan.Transactions.First().Amount;
             var installmentReply =
-                $"Compra parcelada registrada: {parsed.Description}, em {parsed.InstallmentCount}x de R$ {installmentValue:F2}.";
+                $"✅ *Compra parcelada registrada*\n{parsed.Category.ToEmoji()} {parsed.Category.ToDisplayName()} · {Money(parsed.Amount)}\n"
+                + $"📝 {parsed.Description}\n💳 {parsed.InstallmentCount}x de {Money(installmentValue)}";
             return new RegisterMessageResult(true,
                 await AppendBudgetAlertAsync(installmentReply, user.Id, parsed, cancellationToken));
         }
@@ -78,8 +80,10 @@ public class MessageProcessingService : ITransactionRegistrar
         await _transactionRepository.AddAsync(transaction, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var label = parsed.Type == TransactionType.Income ? "Receita" : "Despesa";
-        var reply = $"{label} registrada: R$ {parsed.Amount:F2} em {parsed.Category.ToDisplayName()}.";
+        var heading = parsed.Type == TransactionType.Income ? "💰 *Receita registrada*" : "✅ *Despesa registrada*";
+        var reply =
+            $"{heading}\n{parsed.Category.ToEmoji()} {parsed.Category.ToDisplayName()} · {Money(parsed.Amount)}\n"
+            + $"📝 {parsed.Description}\n📅 {parsed.OccurredAt:dd/MM}";
         return new RegisterMessageResult(true, await AppendBudgetAlertAsync(reply, user.Id, parsed, cancellationToken));
     }
 
@@ -91,6 +95,6 @@ public class MessageProcessingService : ITransactionRegistrar
             return reply;
 
         var alert = await _budgetAlertService.BuildAlertAsync(userId, parsed.Category, parsed.OccurredAt, cancellationToken);
-        return alert is null ? reply : $"{reply}\n{alert}";
+        return alert is null ? reply : $"{reply}\n\n{alert}";
     }
 }

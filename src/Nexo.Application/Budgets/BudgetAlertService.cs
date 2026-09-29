@@ -1,6 +1,7 @@
 using Nexo.Application.Abstractions;
 using Nexo.Domain.Entities;
 using Nexo.Domain.Enums;
+using static Nexo.Application.Messaging.MessageFormatter;
 
 namespace Nexo.Application.Budgets;
 
@@ -50,10 +51,10 @@ public class BudgetAlertService : IBudgetAlertService
             return null;
 
         if (status.PercentUsed >= 1m)
-            return $"Atenção, você estourou o limite de {status.Category.ToDisplayName()} do mês. Gastou R$ {status.Spent:F2} de R$ {status.MonthlyLimit:F2}.";
+            return $"🚨 Atenção, você estourou o limite de {status.Category.ToDisplayName()} do mês. Gastou {Money(status.Spent)} de {Money(status.MonthlyLimit)}.";
 
         if (status.PercentUsed >= WarningThreshold)
-            return $"Atenção, você já usou {status.PercentUsed * 100:F0}% do limite de {status.Category.ToDisplayName()} do mês. Gastou R$ {status.Spent:F2} de R$ {status.MonthlyLimit:F2}.";
+            return $"⚠️ Atenção, você já usou {Percent(status.PercentUsed)} do limite de {status.Category.ToDisplayName()} do mês. Gastou {Money(status.Spent)} de {Money(status.MonthlyLimit)}.";
 
         return null;
     }

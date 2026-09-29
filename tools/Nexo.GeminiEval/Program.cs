@@ -23,7 +23,10 @@ var defaultModels = new[]
     "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.5-flash",
     "gemini-3.8-flash", "gemini-3.1-pro-preview", "gemini-pro-latest"
 };
-var models = args.Length > 0 ? args : defaultModels;
+// --sem-relatorio roda a avaliação sem sobrescrever docs/avaliacao-modelos.md (útil para testar um modelo ou prompt novo).
+var writeReport = !args.Contains("--sem-relatorio");
+var modelArgs = args.Where(a => !a.StartsWith("--")).ToArray();
+var models = modelArgs.Length > 0 ? modelArgs : defaultModels;
 
 var configuration = new ConfigurationBuilder().AddUserSecrets(ApiUserSecretsId).Build();
 var apiKey = configuration["Gemini:ApiKey"]
@@ -39,8 +42,16 @@ Console.WriteLine($"{cases.Count} casos, {models.Length} modelos: {string.Join("
 var results = (await Task.WhenAll(models.Select(RunModelAsync))).ToList();
 
 PrintSummary(results, cases.Count);
-var path = WriteMarkdown(results, cases);
-Console.WriteLine($"\nRelatório gravado em {path}");
+if (writeReport)
+{
+    var path = WriteMarkdown(results, cases);
+    Console.WriteLine($"\nRelatório gravado em {path}");
+}
+else
+{
+    foreach (var failed in results.SelectMany(r => r.Cases.Where(c => !c.Ok).Select(c => (r.Model, c))))
+        Console.WriteLine($"FALHA [{failed.Model}] \"{failed.c.Case.Message}\": {failed.c.Detail}");
+}
 
 // ---------------------------------------------------------------------------------------------
 
@@ -118,6 +129,7 @@ static (bool Ok, bool IntentOk, string Detail) Evaluate(EvalCase testCase, Messa
         if (testCase.Installments is { } installments && intent.InstallmentCount != installments) problems.Add($"parcelas {intent.InstallmentCount}");
         if (testCase.MonthOffset is { } month && intent.MonthOffset != month) problems.Add($"mês {intent.MonthOffset}");
         if (testCase.RecentCount is { } recent && intent.RecentCount != recent) problems.Add($"quantidade {intent.RecentCount}");
+        if (testCase.Chart is { } chart && intent.Chart != chart) problems.Add($"gráfico {intent.Chart}");
     }
 
     return problems.Count == 0 ? (true, true, "") : (false, true, string.Join(", ", problems));
@@ -198,6 +210,7 @@ string WriteMarkdown(List<ModelResult> results, List<EvalCase> evalCases)
 static List<EvalCase> BuildCases()
 {
     const string Reg = "Registro de transação", Qry = "Consulta", Cmd = "Comando", Unk = "Fora do escopo", Ctx = "Depende do contexto";
+    const string New = "Menu, resumo, gráfico e correção";
     var balanceContext = ("quanto gastei com mercado esse mês?", "Em novembro de 2026, você gastou R$ 90,00 em Mercado.");
 
     return new List<EvalCase>
@@ -240,17 +253,36 @@ static List<EvalCase> BuildCases()
         new(Cmd, "muda o limite de transporte pra 250", IntentType.SetBudgetLimit, Category: TransactionCategory.Transporte, Amount: 250m),
 
         // fora do escopo
-        new(Unk, "oi tudo bem?", IntentType.Unknown),
-        new(Unk, "bom dia", IntentType.Unknown),
         new(Unk, "quem descobriu o brasil?", IntentType.Unknown),
         new(Unk, "me conta uma piada", IntentType.Unknown),
         new(Unk, "gastei no mercado", IntentType.Unknown), // sem valor: não pode inventar
+
+        // menu, resumo, gráfico e correção do último lançamento
+        new(New, "menu", IntentType.ShowMenu),
+        new(New, "oi tudo bem?", IntentType.ShowMenu),
+        new(New, "bom dia", IntentType.ShowMenu),
+        new(New, "o que você faz?", IntentType.ShowMenu),
+        new(New, "resumo do mês", IntentType.QueryMonthlySummary, MonthOffset: 0),
+        new(New, "resumo de outubro", IntentType.QueryMonthlySummary, MonthOffset: -1),
+        new(New, "como foi o mês passado?", IntentType.QueryMonthlySummary, MonthOffset: -1),
+        new(New, "me manda um gráfico dos meus gastos", IntentType.QueryChart, Chart: ChartKind.Categories),
+        new(New, "gráfico por categoria do mês passado", IntentType.QueryChart, Chart: ChartKind.Categories, MonthOffset: -1),
+        new(New, "quero ver um gráfico dos últimos meses", IntentType.QueryChart, Chart: ChartKind.Monthly),
+        new(New, "apaga o último", IntentType.UndoLastTransaction),
+        new(New, "desfaz isso", IntentType.UndoLastTransaction),
+        new(New, "cancela o último lançamento", IntentType.UndoLastTransaction),
+        new(New, "corrige para 25", IntentType.EditLastTransaction, Amount: 25m),
+        new(New, "o último foi 40 reais", IntentType.EditLastTransaction, Amount: 40m),
+        new(New, "muda a categoria do último para lazer", IntentType.EditLastTransaction, Category: TransactionCategory.Lazer),
 
         // depende da conversa anterior
         new(Ctx, "e no mês passado?", IntentType.QuerySpending, Category: TransactionCategory.Mercado, MonthOffset: -1, Context: balanceContext),
         new(Ctx, "e com lazer?", IntentType.QuerySpending, Category: TransactionCategory.Lazer, MonthOffset: 0, Context: balanceContext),
         new(Ctx, "e mais 20 de estacionamento", IntentType.RegisterTransaction, Type: TransactionType.Expense, Amount: 20m,
             Context: ("gastei 50 de uber", "Despesa registrada: R$ 50,00 em Transporte.")),
+        // assunto novo depois de falar de limites: a conversa anterior não pode atrapalhar
+        new(Ctx, "gastos por categoria", IntentType.QuerySpending, CategoryMustBeEmpty: true,
+            Context: ("como estão meus limites?", "Você ainda não definiu limites de gasto.")),
     };
 }
 
@@ -266,6 +298,7 @@ record EvalCase(
     int? MonthOffset = null,
     int? RecentCount = null,
     int? DayOffset = null,
+    ChartKind? Chart = null,
     (string User, string Assistant)? Context = null);
 
 record CaseResult(EvalCase Case, MessageIntent? Intent, TimeSpan Elapsed, bool ProviderFailed, bool Ok, bool IntentOk, string Detail);

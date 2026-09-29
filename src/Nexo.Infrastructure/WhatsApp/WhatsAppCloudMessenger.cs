@@ -21,20 +21,58 @@ public class WhatsAppCloudMessenger : IWhatsAppMessenger
         _logger = logger;
     }
 
-    public async Task SendTextAsync(string to, string text, CancellationToken cancellationToken = default)
+    public Task SendTextAsync(string to, string text, CancellationToken cancellationToken = default) =>
+        PostMessageAsync(new
+        {
+            messaging_product = "whatsapp",
+            to,
+            type = "text",
+            text = new { body = text }
+        }, cancellationToken);
+
+    // Enviar uma imagem tem dois passos: primeiro o arquivo é enviado para a Meta, que devolve um id,
+    // e depois a mensagem é enviada referenciando esse id.
+    public async Task SendImageAsync(
+        string to, byte[] image, string mimeType, string? caption, CancellationToken cancellationToken = default)
+    {
+        var uploadUrl = $"{_options.GraphApiBaseUrl}/{_options.GraphApiVersion}/{_options.PhoneNumberId}/media";
+
+        using var form = new MultipartFormDataContent();
+        form.Add(new StringContent("whatsapp"), "messaging_product");
+        form.Add(new StringContent(mimeType), "type");
+        var file = new ByteArrayContent(image);
+        file.Headers.ContentType = new MediaTypeHeaderValue(mimeType);
+        form.Add(file, "file", "grafico.png");
+
+        using var uploadRequest = new HttpRequestMessage(HttpMethod.Post, uploadUrl) { Content = form };
+        uploadRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
+
+        using var uploadResponse = await _httpClient.SendAsync(uploadRequest, cancellationToken);
+        if (!uploadResponse.IsSuccessStatusCode)
+        {
+            var body = await uploadResponse.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning("WhatsApp Cloud API recusou o envio da imagem ({StatusCode}): {Body}", uploadResponse.StatusCode, body);
+            throw new HttpRequestException($"Falha ao enviar a imagem pelo WhatsApp ({(int)uploadResponse.StatusCode}).");
+        }
+
+        var uploaded = await uploadResponse.Content.ReadFromJsonAsync<UploadedMedia>(cancellationToken);
+        if (string.IsNullOrWhiteSpace(uploaded?.Id))
+            throw new HttpRequestException("A Meta não devolveu o id da imagem enviada.");
+
+        await PostMessageAsync(new
+        {
+            messaging_product = "whatsapp",
+            to,
+            type = "image",
+            image = new { id = uploaded.Id, caption }
+        }, cancellationToken);
+    }
+
+    private async Task PostMessageAsync(object payload, CancellationToken cancellationToken)
     {
         var url = $"{_options.GraphApiBaseUrl}/{_options.GraphApiVersion}/{_options.PhoneNumberId}/messages";
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, url)
-        {
-            Content = JsonContent.Create(new
-            {
-                messaging_product = "whatsapp",
-                to,
-                type = "text",
-                text = new { body = text }
-            })
-        };
+        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(payload) };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -88,6 +126,12 @@ public class WhatsAppCloudMessenger : IWhatsAppMessenger
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
         return request;
+    }
+
+    private class UploadedMedia
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
     }
 
     private class MediaInfo

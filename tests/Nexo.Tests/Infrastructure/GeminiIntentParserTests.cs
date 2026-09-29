@@ -8,6 +8,49 @@ public class GeminiIntentParserTests
 {
     private static readonly DateTime Today = new(2026, 11, 23, 0, 0, 0, DateTimeKind.Utc);
 
+    [Theory]
+    [InlineData("ShowMenu", IntentType.ShowMenu)]
+    [InlineData("QueryMonthlySummary", IntentType.QueryMonthlySummary)]
+    [InlineData("UndoLastTransaction", IntentType.UndoLastTransaction)]
+    [InlineData("EditLastTransaction", IntentType.EditLastTransaction)]
+    public void Map_NewIntents_AreRecognized(string name, IntentType expected)
+    {
+        var intent = GeminiIntentParser.Map(new ExtractedIntentDto { Intent = name, Category = "Todas" }, Today, null);
+
+        Assert.Equal(expected, intent.Type);
+    }
+
+    [Theory]
+    [InlineData("Mensal", ChartKind.Monthly)]
+    [InlineData("Categorias", ChartKind.Categories)]
+    [InlineData(null, ChartKind.Categories)]
+    public void Map_QueryChart_ReadsTheChartKind(string? chart, ChartKind expected)
+    {
+        var dto = new ExtractedIntentDto { Intent = "QueryChart", Chart = chart, Category = "Todas", MonthOffset = -1 };
+
+        var intent = GeminiIntentParser.Map(dto, Today, null);
+
+        Assert.Equal(IntentType.QueryChart, intent.Type);
+        Assert.Equal(expected, intent.Chart);
+        Assert.Equal(-1, intent.MonthOffset);
+    }
+
+    [Fact]
+    public void Map_EditLastTransaction_CarriesAmountCategoryAndDescription()
+    {
+        var dto = new ExtractedIntentDto
+        {
+            Intent = "EditLastTransaction", Amount = 25m, Category = "Lazer", Description = "cinema"
+        };
+
+        var intent = GeminiIntentParser.Map(dto, Today, null);
+
+        Assert.Equal(25m, intent.Amount);
+        Assert.Equal(TransactionCategory.Lazer, intent.Category);
+        Assert.Equal("cinema", intent.Description);
+        Assert.Null(intent.Chart);
+    }
+
     [Fact]
     public void Map_RegisterTransaction_BuildsParsedTransaction()
     {

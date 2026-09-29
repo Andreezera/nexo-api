@@ -95,4 +95,35 @@ public class WhatsAppCloudMessengerTests
 
         Assert.Null(await Create(handler).DownloadMediaAsync("media-1"));
     }
+
+    [Fact]
+    public async Task SendImageAsync_UploadsTheFileThenSendsTheMessageWithItsId()
+    {
+        var handler = new FakeHandler();
+        handler.Respond = request => request.RequestUri!.AbsolutePath.EndsWith("/media")
+            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"id\":\"img-42\"}", Encoding.UTF8, "application/json") }
+            : new HttpResponseMessage(HttpStatusCode.OK);
+
+        await Create(handler).SendImageAsync("5511999999999", new byte[] { 1, 2, 3 }, "image/png", "Gastos de novembro");
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal("https://graph.test/v23.0/12345/media", handler.Requests[0].RequestUri!.ToString());
+        Assert.StartsWith("multipart/form-data", handler.Requests[0].Content!.Headers.ContentType!.MediaType + ";");
+        Assert.Equal("https://graph.test/v23.0/12345/messages", handler.Requests[1].RequestUri!.ToString());
+        Assert.Contains("\"type\":\"image\"", handler.Bodies[1]);
+        Assert.Contains("\"id\":\"img-42\"", handler.Bodies[1]);
+        Assert.Contains("Gastos de novembro", handler.Bodies[1]);
+        Assert.All(handler.Requests, r => Assert.Equal("token-abc", r.Headers.Authorization!.Parameter));
+    }
+
+    [Fact]
+    public async Task SendImageAsync_WhenTheUploadFails_ThrowsAndSendsNoMessage()
+    {
+        var handler = new FakeHandler { Respond = _ => new HttpResponseMessage(HttpStatusCode.BadRequest) };
+
+        await Assert.ThrowsAsync<HttpRequestException>(
+            () => Create(handler).SendImageAsync("5511", new byte[] { 1 }, "image/png", null));
+
+        Assert.Single(handler.Requests);
+    }
 }

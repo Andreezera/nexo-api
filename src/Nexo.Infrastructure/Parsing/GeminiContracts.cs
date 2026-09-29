@@ -31,6 +31,7 @@ public class ExtractedIntentDto
     public int? InstallmentCount { get; set; }
     public int? MonthOffset { get; set; }
     public int? RecentCount { get; set; }
+    public string? Chart { get; set; }
     public string? Reply { get; set; }
 }
 

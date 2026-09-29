@@ -31,6 +31,16 @@ public class GeminiIntentParser : IMessageIntentParser
           e "installmentCount" o número de parcelas, se mencionar.
         - QueryBudgets: pergunta como estão os limites de gasto.
         - SetBudgetLimit: pede para definir ou mudar o limite mensal de uma categoria ("category" e "amount").
+        - ShowMenu: cumprimento (oi, olá, bom dia), pedido de ajuda, "menu", "o que você faz", "como funciona" ou "opções".
+        - QueryMonthlySummary: pede um resumo, balanço ou panorama de um mês ("resumo do mês", "como foi outubro?").
+          Em "monthOffset" use 0 para o mês atual, -1 para o mês passado, e assim por diante.
+        - QueryChart: só quando a mensagem pede explicitamente um gráfico, imagem, figura ou visual. Em "chart" use
+          "Categorias" para gastos por categoria (e "monthOffset" para o mês) ou "Mensal" para a evolução de receitas e
+          despesas nos últimos meses. Perguntar "gastos por categoria" ou "quanto gastei em cada categoria" sem pedir
+          gráfico é QuerySpending, não QueryChart.
+        - UndoLastTransaction: pede para apagar, desfazer ou cancelar o último lançamento.
+        - EditLastTransaction: corrige o último lançamento. Em "amount" vai o valor novo (0 se o valor não muda), em
+          "category" a categoria nova ("Todas" se não muda) e em "description" o texto novo (vazio se não muda).
         - Unknown: qualquer outra coisa. Em "reply" escreva uma resposta curta e simpática em português, ou uma pergunta
           pedindo o que faltou. Não invente dados financeiros.
 
@@ -48,6 +58,9 @@ public class GeminiIntentParser : IMessageIntentParser
           "category" com "Todas", "description" e "reply" com string vazia, "occurredAtDate" com a data de hoje e
           "monthOffset" com 0.
         - Nunca invente valores. Se for um registro e não houver um valor claro, use Unknown e peça o valor em "reply".
+        - O assunto escrito na mensagem atual vale mais que a conversa anterior. Use a conversa só quando a mensagem atual
+          for uma continuação clara (como "e no mês passado?"). Se ela trouxer um assunto novo, ignore o que veio antes.
+        - "chart" só é preenchido quando a intenção for QueryChart. Nos outros casos, não inclua "chart".
         """;
 
     private static readonly object ResponseSchema = new
@@ -68,6 +81,7 @@ public class GeminiIntentParser : IMessageIntentParser
             installmentCount = new { type = "INTEGER" },
             monthOffset = new { type = "INTEGER" },
             recentCount = new { type = "INTEGER" },
+            chart = new { type = "STRING", @enum = new[] { "Categorias", "Mensal" } },
             reply = new { type = "STRING" }
         },
         required = new[] { "intent", "type", "amount", "category", "description", "occurredAtDate", "monthOffset", "reply" }
@@ -171,8 +185,13 @@ public class GeminiIntentParser : IMessageIntentParser
             InstallmentCount: dto.InstallmentCount,
             MonthOffset: dto.MonthOffset ?? 0,
             RecentCount: dto.RecentCount,
-            Reply: string.IsNullOrWhiteSpace(dto.Reply) ? null : dto.Reply);
+            Reply: string.IsNullOrWhiteSpace(dto.Reply) ? null : dto.Reply,
+            Chart: type == IntentType.QueryChart ? ParseChart(dto.Chart) : null,
+            Description: string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description);
     }
+
+    private static ChartKind ParseChart(string? chart) =>
+        string.Equals(chart, "Mensal", StringComparison.OrdinalIgnoreCase) ? ChartKind.Monthly : ChartKind.Categories;
 
     private static List<object> BuildContents(MessageContent content, IReadOnlyList<ConversationMessage> history)
     {

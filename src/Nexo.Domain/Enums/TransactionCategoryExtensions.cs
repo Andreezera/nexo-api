@@ -14,4 +14,23 @@ public static class TransactionCategoryExtensions
         TransactionCategory.Salario => "Salário",
         _ => category.ToString()
     };
+
+    public static string ToEmoji(this TransactionCategory category) => category switch
+    {
+        TransactionCategory.Mercado => "🛒",
+        TransactionCategory.Alimentacao => "🍽️",
+        TransactionCategory.Transporte => "🚗",
+        TransactionCategory.Moradia => "🏠",
+        TransactionCategory.Saude => "💊",
+        TransactionCategory.Educacao => "📚",
+        TransactionCategory.Lazer => "🎬",
+        TransactionCategory.Vestuario => "👕",
+        TransactionCategory.Assinaturas => "📺",
+        TransactionCategory.Eletronicos => "💻",
+        TransactionCategory.Salario => "💼",
+        TransactionCategory.Freelance => "🧑‍💻",
+        TransactionCategory.Investimentos => "📈",
+        TransactionCategory.Presente => "🎁",
+        _ => "📦"
+    };
 }

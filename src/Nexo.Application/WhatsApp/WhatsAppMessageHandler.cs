@@ -32,6 +32,20 @@ public class WhatsAppMessageHandler
         }
 
         var result = await _conversationService.HandleAsync(message.From, content, cancellationToken);
+
+        if (result.Image is { } image)
+        {
+            try
+            {
+                await _messenger.SendImageAsync(message.From, image.Data, image.MimeType, result.ReplyMessage, cancellationToken);
+                return;
+            }
+            catch (HttpRequestException)
+            {
+                // Se a imagem não puder ser enviada, o usuário ainda recebe o texto da legenda.
+            }
+        }
+
         await _messenger.SendTextAsync(message.From, result.ReplyMessage, cancellationToken);
     }
 

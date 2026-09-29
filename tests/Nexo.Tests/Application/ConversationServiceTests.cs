@@ -1,9 +1,11 @@
 using Moq;
 using Nexo.Application.Abstractions;
 using Nexo.Application.Budgets;
+using Nexo.Application.Charts;
 using Nexo.Application.Conversation;
 using Nexo.Application.Parsing;
 using Nexo.Application.Projections;
+using Nexo.Application.Reports;
 using Nexo.Application.Transactions;
 using Nexo.Domain.Entities;
 using Nexo.Domain.Enums;
@@ -34,10 +36,17 @@ public class ConversationServiceTests
             .ReturnsAsync(Array.Empty<Transaction>());
     }
 
-    private ConversationService CreateService() => new(
-        _intentParser.Object, _registrar.Object, _userRepository.Object, _transactionRepository.Object,
-        _budgetLimitRepository.Object, _budgetAlertService.Object, _projectionService.Object,
-        _historyRepository.Object, _unitOfWork.Object);
+    private readonly Mock<IChartRenderer> _chartRenderer = new();
+
+    private ConversationService CreateService()
+    {
+        var reportService = new ReportService(_transactionRepository.Object);
+        return new ConversationService(
+            _intentParser.Object, _registrar.Object, _userRepository.Object, _transactionRepository.Object,
+            _budgetLimitRepository.Object, _budgetAlertService.Object, _projectionService.Object,
+            reportService, new ChartService(reportService, _chartRenderer.Object),
+            _historyRepository.Object, _unitOfWork.Object);
+    }
 
     private void SetupIntent(MessageIntent? intent) =>
         _intentParser.Setup(p => p.ParseAsync(It.IsAny<MessageContent>(), It.IsAny<IReadOnlyList<ConversationMessage>>(), It.IsAny<CancellationToken>()))
@@ -137,7 +146,7 @@ public class ConversationServiceTests
 
         var result = await Handle();
 
-        Assert.Contains($"{1000m:F2}", result.ReplyMessage);
+        Assert.Contains("R$ 1.000,00", result.ReplyMessage);
     }
 
     [Fact]

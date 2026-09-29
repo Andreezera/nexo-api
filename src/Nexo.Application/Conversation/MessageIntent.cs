@@ -12,11 +12,23 @@ public enum IntentType
     QueryRecentTransactions,
     QueryPurchaseProjection,
     QueryBudgets,
-    SetBudgetLimit
+    SetBudgetLimit,
+    ShowMenu,
+    QueryMonthlySummary,
+    QueryChart,
+    UndoLastTransaction,
+    EditLastTransaction
 }
 
-// MonthOffset: 0 = mês atual, -1 = mês passado, e assim por diante (só vale para QuerySpending).
+public enum ChartKind
+{
+    Categories,
+    Monthly
+}
+
+// MonthOffset: 0 = mês atual, -1 = mês passado, e assim por diante (vale para gastos, resumo e gráfico por categoria).
 // Reply: resposta pronta da IA para mensagens que não são nenhuma das intenções acima.
+// Chart: qual gráfico foi pedido. Description: novo texto do lançamento, quando o usuário corrige o último.
 public record MessageIntent(
     IntentType Type,
     ParsedTransaction? Transaction = null,
@@ -25,4 +37,6 @@ public record MessageIntent(
     int? InstallmentCount = null,
     int MonthOffset = 0,
     int? RecentCount = null,
-    string? Reply = null);
+    string? Reply = null,
+    ChartKind? Chart = null,
+    string? Description = null);

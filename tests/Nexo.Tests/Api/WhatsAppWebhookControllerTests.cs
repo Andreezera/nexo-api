@@ -5,8 +5,10 @@ using Nexo.Api.Contracts;
 using Nexo.Api.Controllers;
 using Nexo.Application.Abstractions;
 using Nexo.Application.Budgets;
+using Nexo.Application.Charts;
 using Nexo.Application.Conversation;
 using Nexo.Application.Projections;
+using Nexo.Application.Reports;
 using Nexo.Application.Transactions;
 using Nexo.Domain.Entities;
 
@@ -35,7 +37,8 @@ public class WhatsAppWebhookControllerTests
         var service = new ConversationService(
             _intentParser.Object, Mock.Of<ITransactionRegistrar>(), _userRepository.Object,
             Mock.Of<ITransactionRepository>(), Mock.Of<IBudgetLimitRepository>(), Mock.Of<IBudgetAlertService>(),
-            Mock.Of<IPurchaseProjectionService>(), _historyRepository.Object, Mock.Of<IUnitOfWork>());
+            Mock.Of<IPurchaseProjectionService>(), Mock.Of<IReportService>(), Mock.Of<IChartService>(),
+            _historyRepository.Object, Mock.Of<IUnitOfWork>());
         return new WhatsAppWebhookController(service);
     }
 
