@@ -63,7 +63,7 @@ cd nexo
 dotnet test tests/Nexo.Tests
 ```
 
-Deve terminar com 129 testes aprovados.
+Deve terminar com 187 testes aprovados.
 
 ## 5. Subir o NEXO para a demonstração
 

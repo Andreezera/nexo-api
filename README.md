@@ -36,6 +36,14 @@ Exemplos de mensagens que o sistema entende:
 - Integração com o WhatsApp Cloud API (webhook com assinatura, fila em segundo plano, envio da resposta)
 - Avaliação comparativa de modelos de IA ([docs/avaliacao-modelos.md](docs/avaliacao-modelos.md))
 
+**Experiência no WhatsApp**
+- Menu de ajuda (`menu`, `ajuda`, ou um "oi"), e dica do menu no primeiro contato
+- Respostas formatadas com emojis, negrito e barras de progresso (registro, saldo, limites, últimos lançamentos)
+- Resumo por mês ("resumo do mês", "resumo de outubro"): receitas, despesas, saldo, gastos por categoria e comparação com o mês anterior
+- Gráficos como imagem (por categoria e receitas x despesas dos últimos meses), desenhados no servidor com SkiaSharp
+- Desfazer e corrigir o último lançamento ("apaga o último", "corrige para 25")
+- Endpoints de relatórios (`/api/users/{telefone}/reports/...`) com os mesmos dados e gráficos, para usar fora do WhatsApp
+
 ## Arquitetura
 
 Solução em 4 camadas, inspirada em Clean Architecture, de forma deliberadamente simplificada (sem CQRS, sem MediatR e sem repositório genérico):
@@ -122,6 +130,8 @@ dotnet user-secrets set "WhatsApp:AppSecret" "<app secret do app na Meta>" --pro
 
 Como a Meta precisa alcançar a API pela internet, é preciso um túnel (por exemplo `ngrok http 5161`). No painel do app, a Callback URL é `https://<seu-tunel>/api/webhook/whatsapp/cloud`, com o mesmo token de verificação, e o campo `messages` assinado. A versão da Graph API pode ser trocada em `WhatsApp:GraphApiVersion`.
 
+Para subir tudo de uma vez (API, túnel Cloudflare e atualização automática do webhook da Meta), use `scripts/iniciar-demo.ps1`. O passo a passo para rodar em outra máquina está em [docs/rodar-no-notebook.md](docs/rodar-no-notebook.md).
+
 ## Testes
 
 ```bash
@@ -130,7 +140,7 @@ dotnet test tests/Nexo.Tests
 
 Os testes cobrem as regras do domínio (divisão de parcelas, remoção lógica, limites), os serviços de aplicação (conversa, alertas de limite, projeção de compra, tratamento das mensagens do WhatsApp), o mapeamento da resposta da IA, o cliente do WhatsApp (com um `HttpMessageHandler` falso), a validação da assinatura da Meta e os controllers.
 
-A avaliação de modelos de IA (`tools/Nexo.GeminiEval`) não faz parte da suíte automática por depender de rede real. Ela roda o mesmo conjunto de mensagens em vários modelos do Gemini e grava o resultado em [`docs/avaliacao-modelos.md`](docs/avaliacao-modelos.md). A avaliação da primeira etapa continua em [`docs/avaliacao-gemini.md`](docs/avaliacao-gemini.md).
+A avaliação de modelos de IA (`tools/Nexo.GeminiEval`) não faz parte da suíte automática por depender de rede real. Ela roda o mesmo conjunto de 54 mensagens em vários modelos do Gemini e grava o resultado em [`docs/avaliacao-modelos.md`](docs/avaliacao-modelos.md). Com `--sem-relatorio`, roda sem sobrescrever esse documento. A avaliação da primeira etapa continua em [`docs/avaliacao-gemini.md`](docs/avaliacao-gemini.md).
 
 ## Estrutura do repositório
 
