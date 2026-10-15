@@ -26,15 +26,19 @@ public static class MessageFormatter
 
     public static string Percent(decimal fraction) => $"{fraction * 100:F0}%";
 
-    // Barra de progresso feita de caracteres, que o WhatsApp mostra em qualquer celular.
-    public static string Bar(decimal fraction, int width = 10)
+    // Barra de progresso feita de quadradinhos de emoji. Caracteres como ▓ e ░ aparecem como caixas cinza no WhatsApp
+    // do celular, e os emojis têm a mesma aparência em qualquer aparelho.
+    public static string Bar(decimal fraction, int width = 10, string filledSquare = "🟦")
     {
         var filled = (int)Math.Round(Math.Clamp(fraction, 0m, 1m) * width, MidpointRounding.AwayFromZero);
-        return new string('▓', filled) + new string('░', width - filled);
+        return string.Concat(Enumerable.Repeat(filledSquare, filled)) + string.Concat(Enumerable.Repeat("⬜", width - filled));
     }
 
     // Verde até 70% do limite, amarelo até 100%, vermelho depois.
     public static string StatusDot(decimal fraction) => fraction >= 1m ? "🔴" : fraction >= 0.7m ? "🟡" : "🟢";
+
+    // Mesma regra do StatusDot, em quadradinho, para a cor da barra de um limite.
+    public static string StatusSquare(decimal fraction) => fraction >= 1m ? "🟥" : fraction >= 0.7m ? "🟨" : "🟩";
 
     public const string Menu = """
         👋 Oi! Eu sou o *NEXO*, seu assistente financeiro.

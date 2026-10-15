@@ -305,7 +305,7 @@ public class ConversationService
 
         var blocks = statuses.Select(s =>
             $"{StatusDot(s.PercentUsed)} {s.Category.ToEmoji()} *{s.Category.ToDisplayName()}*  {Money(s.Spent)} de {Money(s.MonthlyLimit)}\n"
-            + $"{Bar(s.PercentUsed)} {Percent(s.PercentUsed)}{(s.PercentUsed >= 1m ? " · estourado" : "")}");
+            + $"{Bar(s.PercentUsed, 10, StatusSquare(s.PercentUsed))} {Percent(s.PercentUsed)}{(s.PercentUsed >= 1m ? " · estourado" : "")}");
         return "🎯 *Seus limites deste mês*\n\n" + string.Join("\n\n", blocks);
     }
 
@@ -371,7 +371,9 @@ public class ConversationService
 
         last.Update(last.Type, newAmount, newCategory, newDescription, last.OccurredAt);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        var repeatsCategory = string.Equals(newDescription, newCategory.ToDisplayName(), StringComparison.OrdinalIgnoreCase);
         return new RegisterMessageResult(true,
-            $"✏️ *Lançamento corrigido*\n{newCategory.ToEmoji()} {newCategory.ToDisplayName()} · {Money(newAmount)}\n📝 {newDescription}");
+            $"✏️ *Lançamento corrigido*\n{newCategory.ToEmoji()} {newCategory.ToDisplayName()} · {Money(newAmount)}"
+            + (repeatsCategory ? "" : $"\n📝 {newDescription}"));
     }
 }

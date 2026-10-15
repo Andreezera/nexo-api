@@ -5,14 +5,16 @@ using SkiaSharp;
 namespace Nexo.Infrastructure.Charts;
 
 // Desenha os gráficos como PNG no próprio servidor, para os dados financeiros não saírem para nenhum serviço externo.
+// O WhatsApp encolhe a imagem para a largura da tela do celular, então as fontes são grandes de propósito.
 public class SkiaChartRenderer : IChartRenderer
 {
     private const int Width = 1000;
-    private const int Height = 640;
+    private const int CategoryHeight = 800;
+    private const int MonthlyHeight = 760;
     private const int MaxLegendRows = 7;
 
     private static readonly SKColor Ink = SKColor.Parse("#1A2E2F");
-    private static readonly SKColor Muted = SKColor.Parse("#6B7C7D");
+    private static readonly SKColor Muted = SKColor.Parse("#5B6B6C");
     private static readonly SKColor GridLine = SKColor.Parse("#E3EAEA");
     private static readonly SKColor IncomeColor = SKColor.Parse("#00A896");
     private static readonly SKColor ExpenseColor = SKColor.Parse("#F4845F");
@@ -28,13 +30,13 @@ public class SkiaChartRenderer : IChartRenderer
         var visible = slices.Where(s => s.Value > 0).Take(MaxLegendRows).ToList();
         var total = visible.Sum(s => s.Value);
 
-        using var surface = SKSurface.Create(new SKImageInfo(Width, Height));
+        using var surface = SKSurface.Create(new SKImageInfo(Width, CategoryHeight));
         var canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
 
-        DrawText(canvas, title, 48, 72, 34, bold: true, Ink);
+        DrawText(canvas, title, 48, 84, 44, bold: true, Ink);
 
-        const float cx = 290, cy = 372, outer = 200, ring = 84;
+        const float cx = 270, cy = 460, outer = 230, ring = 96;
         using (var arc = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = ring })
         {
             var rect = new SKRect(cx - (outer - ring / 2), cy - (outer - ring / 2), cx + (outer - ring / 2), cy + (outer - ring / 2));
@@ -49,18 +51,18 @@ public class SkiaChartRenderer : IChartRenderer
             }
         }
 
-        DrawText(canvas, "Total", cx, cy - 6, 24, bold: false, Muted, TextAlign.Center);
-        DrawText(canvas, centerLabel, cx, cy + 34, 32, bold: true, Ink, TextAlign.Center);
+        DrawText(canvas, "Total", cx, cy - 8, 30, bold: false, Muted, TextAlign.Center);
+        DrawText(canvas, centerLabel, cx, cy + 44, 40, bold: true, Ink, TextAlign.Center);
 
-        var y = 170f;
+        var y = 210f;
         for (var i = 0; i < visible.Count; i++)
         {
             using var dot = new SKPaint { IsAntialias = true, Color = Palette[i % Palette.Length] };
-            canvas.DrawRoundRect(new SKRect(560, y - 22, 586, y + 4), 6, 6, dot);
-            DrawText(canvas, visible[i].Label, 604, y, 28, bold: true, Ink);
+            canvas.DrawRoundRect(new SKRect(540, y - 28, 574, y + 6), 8, 8, dot);
+            DrawText(canvas, visible[i].Label, 594, y, 36, bold: true, Ink);
             DrawText(canvas, $"{MessageFormatter.Money(visible[i].Value)} · {MessageFormatter.Percent(visible[i].Value / total)}",
-                604, y + 32, 24, bold: false, Muted);
-            y += 66;
+                594, y + 40, 30, bold: false, Muted);
+            y += 80;
         }
 
         return Encode(surface);
@@ -68,15 +70,15 @@ public class SkiaChartRenderer : IChartRenderer
 
     public byte[] RenderMonthlyChart(string title, IReadOnlyList<MonthlyBar> months)
     {
-        using var surface = SKSurface.Create(new SKImageInfo(Width, Height));
+        using var surface = SKSurface.Create(new SKImageInfo(Width, MonthlyHeight));
         var canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
 
-        DrawText(canvas, title, 48, 72, 34, bold: true, Ink);
-        DrawLegendItem(canvas, 640, 128, IncomeColor, "Receitas");
-        DrawLegendItem(canvas, 810, 128, ExpenseColor, "Despesas");
+        DrawText(canvas, title, 48, 84, 44, bold: true, Ink);
+        DrawLegendItem(canvas, 560, 150, IncomeColor, "Receitas");
+        DrawLegendItem(canvas, 770, 150, ExpenseColor, "Despesas");
 
-        const float left = 130, right = 960, top = 190, bottom = 530;
+        const float left = 150, right = 960, top = 230, bottom = 630;
         var maxValue = months.Count == 0 ? 0m : months.Max(m => Math.Max(m.Income, m.Expense));
         var axisMax = NiceAxisMax(maxValue);
 
@@ -86,7 +88,7 @@ public class SkiaChartRenderer : IChartRenderer
             {
                 var gy = bottom - (bottom - top) * i / 4f;
                 canvas.DrawLine(left, gy, right, gy, grid);
-                DrawText(canvas, Compact(axisMax * i / 4), left - 14, gy + 8, 22, bold: false, Muted, TextAlign.Right);
+                DrawText(canvas, Compact(axisMax * i / 4), left - 16, gy + 10, 28, bold: false, Muted, TextAlign.Right);
             }
         }
 
@@ -98,7 +100,7 @@ public class SkiaChartRenderer : IChartRenderer
             var centerX = left + groupWidth * (i + 0.5f);
             DrawBar(canvas, centerX - barWidth - 4, barWidth, bottom, top, months[i].Income, axisMax, IncomeColor);
             DrawBar(canvas, centerX + 4, barWidth, bottom, top, months[i].Expense, axisMax, ExpenseColor);
-            DrawText(canvas, months[i].Label, centerX, bottom + 44, 26, bold: true, Ink, TextAlign.Center);
+            DrawText(canvas, months[i].Label, centerX, bottom + 54, 34, bold: true, Ink, TextAlign.Center);
         }
 
         return Encode(surface);
@@ -118,14 +120,14 @@ public class SkiaChartRenderer : IChartRenderer
         using var cover = new SKPaint { Color = SKColors.White };
         canvas.DrawRect(new SKRect(x - 1, bottom, x + width + 1, bottom + 8), cover);
 
-        DrawText(canvas, Compact(value), x + width / 2, bottom - barHeight - 10, 20, bold: true, Ink, TextAlign.Center);
+        DrawText(canvas, Compact(value), x + width / 2, bottom - barHeight - 12, 26, bold: true, Ink, TextAlign.Center);
     }
 
     private static void DrawLegendItem(SKCanvas canvas, float x, float y, SKColor color, string label)
     {
         using var dot = new SKPaint { IsAntialias = true, Color = color };
-        canvas.DrawRoundRect(new SKRect(x, y - 20, x + 24, y + 4), 6, 6, dot);
-        DrawText(canvas, label, x + 36, y, 26, bold: false, Ink);
+        canvas.DrawRoundRect(new SKRect(x, y - 26, x + 30, y + 4), 8, 8, dot);
+        DrawText(canvas, label, x + 44, y, 32, bold: false, Ink);
     }
 
     // Arredonda o topo do eixo para um valor "redondo" (1, 2, 5 vezes uma potência de 10) acima do maior valor.

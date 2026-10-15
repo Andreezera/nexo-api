@@ -16,11 +16,11 @@ public class MessageFormatterTests
     }
 
     [Theory]
-    [InlineData(0, "░░░░░░░░░░")]
-    [InlineData(0.5, "▓▓▓▓▓░░░░░")]
-    [InlineData(1, "▓▓▓▓▓▓▓▓▓▓")]
-    [InlineData(2.5, "▓▓▓▓▓▓▓▓▓▓")]
-    [InlineData(-1, "░░░░░░░░░░")]
+    [InlineData(0, "⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜")]
+    [InlineData(0.5, "🟦🟦🟦🟦🟦⬜⬜⬜⬜⬜")]
+    [InlineData(1, "🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦")]
+    [InlineData(2.5, "🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦")]
+    [InlineData(-1, "⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜")]
     public void Bar_FillsProportionallyAndClamps(double fraction, string expected)
     {
         Assert.Equal(expected, MessageFormatter.Bar((decimal)fraction));

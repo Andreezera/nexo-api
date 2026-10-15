@@ -81,9 +81,12 @@ public class MessageProcessingService : ITransactionRegistrar
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var heading = parsed.Type == TransactionType.Income ? "💰 *Receita registrada*" : "✅ *Despesa registrada*";
+        // Quando a descrição só repete o nome da categoria (ex: "Mercado"), a linha do texto não acrescenta nada.
+        var showDescription = !string.Equals(parsed.Description, parsed.Category.ToDisplayName(), StringComparison.OrdinalIgnoreCase);
         var reply =
             $"{heading}\n{parsed.Category.ToEmoji()} {parsed.Category.ToDisplayName()} · {Money(parsed.Amount)}\n"
-            + $"📝 {parsed.Description}\n📅 {parsed.OccurredAt:dd/MM}";
+            + (showDescription ? $"📝 {parsed.Description}\n" : "")
+            + $"📅 {parsed.OccurredAt:dd/MM}";
         return new RegisterMessageResult(true, await AppendBudgetAlertAsync(reply, user.Id, parsed, cancellationToken));
     }
 

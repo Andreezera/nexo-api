@@ -139,7 +139,7 @@ public class ConversationNewFeaturesTests
 
         Assert.Contains("Mercado", result.ReplyMessage);
         Assert.Contains("80%", result.ReplyMessage);
-        Assert.Contains("▓", result.ReplyMessage);
+        Assert.Contains("🟦", result.ReplyMessage);
     }
 
     [Fact]

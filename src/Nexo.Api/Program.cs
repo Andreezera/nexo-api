@@ -62,6 +62,17 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// A primeira imagem desenhada carrega a biblioteca gráfica (cerca de 2 s). Desenhar uma vez na subida
+// evita essa espera na primeira resposta real.
+try
+{
+    app.Services.GetRequiredService<IChartRenderer>().RenderMonthlyChart("", new[] { new MonthlyBar("", 1m, 1m) });
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Não foi possível aquecer o gerador de gráficos.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
