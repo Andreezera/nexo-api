@@ -41,6 +41,7 @@ public class ConversationService
     private readonly IChartService _chartService;
     private readonly IConversationHistoryRepository _historyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IReadOnlyDictionary<IntentType, IIntentHandler> _handlers;
 
     public ConversationService(
         IMessageIntentParser intentParser,
@@ -53,8 +54,12 @@ public class ConversationService
         IReportService reportService,
         IChartService chartService,
         IConversationHistoryRepository historyRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IEnumerable<IIntentHandler> intentHandlers)
     {
+        _handlers = intentHandlers
+            .SelectMany(handler => handler.Handles.Select(type => (type, handler)))
+            .ToDictionary(pair => pair.type, pair => pair.handler);
         _intentParser = intentParser;
         _registrar = registrar;
         _userRepository = userRepository;
@@ -105,6 +110,9 @@ public class ConversationService
     private async Task<RegisterMessageResult> ExecuteAsync(
         User user, string phoneNumber, MessageIntent intent, CancellationToken cancellationToken)
     {
+        if (_handlers.TryGetValue(intent.Type, out var handler))
+            return await handler.HandleAsync(user, intent, cancellationToken);
+
         switch (intent.Type)
         {
             case IntentType.RegisterTransaction when intent.Transaction is not null:

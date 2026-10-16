@@ -45,7 +45,7 @@ public class ConversationServiceTests
             _intentParser.Object, _registrar.Object, _userRepository.Object, _transactionRepository.Object,
             _budgetLimitRepository.Object, _budgetAlertService.Object, _projectionService.Object,
             reportService, new ChartService(reportService, _chartRenderer.Object),
-            _historyRepository.Object, _unitOfWork.Object);
+            _historyRepository.Object, _unitOfWork.Object, Array.Empty<IIntentHandler>());
     }
 
     private void SetupIntent(MessageIntent? intent) =>

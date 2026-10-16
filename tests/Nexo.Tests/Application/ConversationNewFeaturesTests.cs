@@ -22,6 +22,7 @@ public class ConversationNewFeaturesTests
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IChartRenderer> _chartRenderer = new();
     private readonly User _user = new(Phone);
+    private static readonly IEnumerable<IIntentHandler> Handlers = Array.Empty<IIntentHandler>();
 
     public ConversationNewFeaturesTests()
     {
@@ -44,7 +45,7 @@ public class ConversationNewFeaturesTests
         return new ConversationService(
             parser ?? _intentParser.Object, Mock.Of<ITransactionRegistrar>(), _userRepository.Object, _transactionRepository.Object,
             Mock.Of<IBudgetLimitRepository>(), Mock.Of<IBudgetAlertService>(), Mock.Of<IPurchaseProjectionService>(),
-            report, new ChartService(report, _chartRenderer.Object), history.Object, _unitOfWork.Object);
+            report, new ChartService(report, _chartRenderer.Object), history.Object, _unitOfWork.Object, Handlers);
     }
 
     private void SetupIntent(MessageIntent intent) =>

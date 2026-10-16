@@ -41,6 +41,11 @@ public class GeminiIntentParser : IMessageIntentParser
         - UndoLastTransaction: pede para apagar, desfazer ou cancelar o último lançamento.
         - EditLastTransaction: corrige o último lançamento. Em "amount" vai o valor novo (0 se o valor não muda), em
           "category" a categoria nova ("Todas" se não muda) e em "description" o texto novo (vazio se não muda).
+        - CreateRecurringTransaction: conta que se repete todo mês ("netflix 55,90 todo dia 10", "aluguel de 1200 todo dia 5",
+          "meu salário de 3000 cai todo dia 5"). Preencha "type", "amount", "category", "description" e "dayOfMonth" (1 a 31).
+          Compra parcelada NÃO é recorrente.
+        - QueryRecurringTransactions: pergunta ou pede a lista das contas recorrentes, fixas ou assinaturas.
+        - CancelRecurringTransaction: pede para cancelar uma conta recorrente ("cancela a netflix"). Em "description" vai o nome.
         - Unknown: qualquer outra coisa. Em "reply" escreva uma resposta curta e simpática em português, ou uma pergunta
           pedindo o que faltou. Não invente dados financeiros.
 
@@ -82,6 +87,7 @@ public class GeminiIntentParser : IMessageIntentParser
             monthOffset = new { type = "INTEGER" },
             recentCount = new { type = "INTEGER" },
             chart = new { type = "STRING", @enum = new[] { "Categorias", "Mensal" } },
+            dayOfMonth = new { type = "INTEGER" },
             reply = new { type = "STRING" }
         },
         required = new[] { "intent", "type", "amount", "category", "description", "occurredAtDate", "monthOffset", "reply" }
@@ -176,6 +182,22 @@ public class GeminiIntentParser : IMessageIntentParser
                 InstallmentCount: dto.InstallmentCount);
 
             return new MessageIntent(IntentType.RegisterTransaction, Transaction: transaction);
+        }
+
+        if (type == IntentType.CreateRecurringTransaction)
+        {
+            // Sem valor, o tratador pede o que falta. Com valor, a conta já vai montada.
+            var recurring = dto.Amount is > 0
+                ? new ParsedTransaction(
+                    Type: dto.Type == "income" ? TransactionType.Income : TransactionType.Expense,
+                    Amount: dto.Amount.Value,
+                    Category: category ?? TransactionCategory.Outros,
+                    Description: string.IsNullOrWhiteSpace(dto.Description) ? fallbackDescription ?? "Conta recorrente" : dto.Description,
+                    OccurredAt: today,
+                    InstallmentCount: null)
+                : null;
+
+            return new MessageIntent(IntentType.CreateRecurringTransaction, Transaction: recurring, DayOfMonth: dto.DayOfMonth);
         }
 
         return new MessageIntent(

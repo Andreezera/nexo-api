@@ -118,6 +118,50 @@ namespace Nexo.Infrastructure.Migrations
                     b.ToTable("InstallmentPlans", (string)null);
                 });
 
+            modelBuilder.Entity("Nexo.Domain.Entities.RecurringTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DayOfMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastGeneratedMonth")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsActive");
+
+                    b.ToTable("RecurringTransactions", (string)null);
+                });
+
             modelBuilder.Entity("Nexo.Domain.Entities.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -206,6 +250,15 @@ namespace Nexo.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("Nexo.Domain.Entities.ConversationMessage", b =>
+                {
+                    b.HasOne("Nexo.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Nexo.Domain.Entities.RecurringTransaction", b =>
                 {
                     b.HasOne("Nexo.Domain.Entities.User", null)
                         .WithMany()

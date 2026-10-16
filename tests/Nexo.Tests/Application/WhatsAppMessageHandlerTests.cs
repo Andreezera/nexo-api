@@ -32,7 +32,7 @@ public class WhatsAppMessageHandlerTests
         _conversation = new ConversationService(
             _intentParser.Object, Mock.Of<ITransactionRegistrar>(), userRepository.Object, Mock.Of<ITransactionRepository>(),
             Mock.Of<IBudgetLimitRepository>(), Mock.Of<IBudgetAlertService>(), Mock.Of<IPurchaseProjectionService>(),
-            Mock.Of<IReportService>(), _chartService.Object, history.Object, Mock.Of<IUnitOfWork>());
+            Mock.Of<IReportService>(), _chartService.Object, history.Object, Mock.Of<IUnitOfWork>(), Array.Empty<IIntentHandler>());
     }
 
     private readonly Mock<IChartService> _chartService = new();

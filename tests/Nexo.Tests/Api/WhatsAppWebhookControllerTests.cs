@@ -38,7 +38,7 @@ public class WhatsAppWebhookControllerTests
             _intentParser.Object, Mock.Of<ITransactionRegistrar>(), _userRepository.Object,
             Mock.Of<ITransactionRepository>(), Mock.Of<IBudgetLimitRepository>(), Mock.Of<IBudgetAlertService>(),
             Mock.Of<IPurchaseProjectionService>(), Mock.Of<IReportService>(), Mock.Of<IChartService>(),
-            _historyRepository.Object, Mock.Of<IUnitOfWork>());
+            _historyRepository.Object, Mock.Of<IUnitOfWork>(), Array.Empty<IIntentHandler>());
         return new WhatsAppWebhookController(service);
     }
 

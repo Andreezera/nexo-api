@@ -17,7 +17,10 @@ public enum IntentType
     QueryMonthlySummary,
     QueryChart,
     UndoLastTransaction,
-    EditLastTransaction
+    EditLastTransaction,
+    CreateRecurringTransaction,
+    QueryRecurringTransactions,
+    CancelRecurringTransaction
 }
 
 public enum ChartKind
@@ -28,7 +31,8 @@ public enum ChartKind
 
 // MonthOffset: 0 = mês atual, -1 = mês passado, e assim por diante (vale para gastos, resumo e gráfico por categoria).
 // Reply: resposta pronta da IA para mensagens que não são nenhuma das intenções acima.
-// Chart: qual gráfico foi pedido. Description: novo texto do lançamento, quando o usuário corrige o último.
+// Chart: qual gráfico foi pedido. Description: novo texto do lançamento (corrigir o último) ou nome da conta
+// recorrente a cancelar. DayOfMonth: dia do mês de uma conta recorrente.
 public record MessageIntent(
     IntentType Type,
     ParsedTransaction? Transaction = null,
@@ -39,4 +43,5 @@ public record MessageIntent(
     int? RecentCount = null,
     string? Reply = null,
     ChartKind? Chart = null,
-    string? Description = null);
+    string? Description = null,
+    int? DayOfMonth = null);

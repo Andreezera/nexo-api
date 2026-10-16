@@ -110,15 +110,17 @@ static (bool Ok, bool IntentOk, string Detail) Evaluate(EvalCase testCase, Messa
 
     var problems = new List<string>();
 
-    if (testCase.Intent == IntentType.RegisterTransaction)
+    if (testCase.Intent is IntentType.RegisterTransaction or IntentType.CreateRecurringTransaction)
     {
-        var t = intent.Transaction!;
+        if (intent.Transaction is null) return (false, true, "sem transação");
+        var t = intent.Transaction;
+        if (testCase.DayOfMonth is { } dayOfMonth && intent.DayOfMonth != dayOfMonth) problems.Add($"dia {intent.DayOfMonth}");
         if (testCase.Type is { } type && t.Type != type) problems.Add($"tipo {t.Type}");
         if (testCase.Amount is { } amount && Math.Abs(t.Amount - amount) > 0.01m) problems.Add($"valor {t.Amount}");
         if (testCase.Category is { } category && t.Category != category) problems.Add($"categoria {t.Category}");
         if (testCase.Installments is { } installments && t.InstallmentCount != installments) problems.Add($"parcelas {t.InstallmentCount}");
         if (testCase.Installments is null && t.InstallmentCount is > 1) problems.Add($"parcelas {t.InstallmentCount}");
-        if (testCase.DayOffset is { } offset && t.OccurredAt.Date != DateTime.UtcNow.Date.AddDays(offset))
+        if (testCase.Intent == IntentType.RegisterTransaction && testCase.DayOffset is { } offset && t.OccurredAt.Date != DateTime.UtcNow.Date.AddDays(offset))
             problems.Add($"data {t.OccurredAt:yyyy-MM-dd}");
     }
     else
@@ -275,6 +277,13 @@ static List<EvalCase> BuildCases()
         new(New, "o último foi 40 reais", IntentType.EditLastTransaction, Amount: 40m),
         new(New, "muda a categoria do último para lazer", IntentType.EditLastTransaction, Category: TransactionCategory.Lazer),
 
+        // contas recorrentes
+        new(New, "netflix 55,90 todo dia 10", IntentType.CreateRecurringTransaction, Type: TransactionType.Expense, Amount: 55.90m, Category: TransactionCategory.Assinaturas, DayOfMonth: 10),
+        new(New, "aluguel de 1200 todo dia 5", IntentType.CreateRecurringTransaction, Type: TransactionType.Expense, Amount: 1200m, Category: TransactionCategory.Moradia, DayOfMonth: 5),
+        new(New, "meu salário de 3000 cai todo dia 5", IntentType.CreateRecurringTransaction, Type: TransactionType.Income, Amount: 3000m, DayOfMonth: 5),
+        new(New, "quais são minhas contas fixas?", IntentType.QueryRecurringTransactions),
+        new(New, "cancela a netflix", IntentType.CancelRecurringTransaction),
+
         // depende da conversa anterior
         new(Ctx, "e no mês passado?", IntentType.QuerySpending, Category: TransactionCategory.Mercado, MonthOffset: -1, Context: balanceContext),
         new(Ctx, "e com lazer?", IntentType.QuerySpending, Category: TransactionCategory.Lazer, MonthOffset: 0, Context: balanceContext),
@@ -299,6 +308,7 @@ record EvalCase(
     int? RecentCount = null,
     int? DayOffset = null,
     ChartKind? Chart = null,
+    int? DayOfMonth = null,
     (string User, string Assistant)? Context = null);
 
 record CaseResult(EvalCase Case, MessageIntent? Intent, TimeSpan Elapsed, bool ProviderFailed, bool Ok, bool IntentOk, string Detail);
