@@ -20,7 +20,8 @@ public enum IntentType
     EditLastTransaction,
     CreateRecurringTransaction,
     QueryRecurringTransactions,
-    CancelRecurringTransaction
+    CancelRecurringTransaction,
+    QueryMonthPace
 }
 
 public enum ChartKind

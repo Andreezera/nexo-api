@@ -42,6 +42,8 @@ builder.Services.AddScoped<IRecurringTransactionRepository, RecurringTransaction
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
 builder.Services.AddScoped<IIntentHandler, RecurringIntentHandler>();
 builder.Services.AddHostedService<RecurringTransactionWorker>();
+builder.Services.AddScoped<IMonthPaceService, MonthPaceService>();
+builder.Services.AddScoped<IIntentHandler, MonthPaceIntentHandler>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IChartService, ChartService>();
 builder.Services.AddSingleton<IChartRenderer, SkiaChartRenderer>();

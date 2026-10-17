@@ -46,6 +46,8 @@ public class GeminiIntentParser : IMessageIntentParser
           Compra parcelada NÃO é recorrente.
         - QueryRecurringTransactions: pergunta ou pede a lista das contas recorrentes, fixas ou assinaturas.
         - CancelRecurringTransaction: pede para cancelar uma conta recorrente ("cancela a netflix"). Em "description" vai o nome.
+        - QueryMonthPace: pergunta como está o mês até agora, quanto ainda pode gastar por dia, se vai fechar o mês no azul ou
+          no vermelho, ou como o mês deve terminar ("como estou esse mês?", "quanto posso gastar por dia?").
         - Unknown: qualquer outra coisa. Em "reply" escreva uma resposta curta e simpática em português, ou uma pergunta
           pedindo o que faltou. Não invente dados financeiros.
 

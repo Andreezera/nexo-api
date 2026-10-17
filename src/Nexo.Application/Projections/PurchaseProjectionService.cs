@@ -90,7 +90,7 @@ public class PurchaseProjectionService : IPurchaseProjectionService
 
     // Média mensal de receita e despesa nos últimos meses fechados, sem contar parcelas
     // (elas entram à parte, como compromissos futuros). Sem histórico fechado, usa o mês atual.
-    private static (decimal Income, decimal Expense) AverageMonthlyFlow(IReadOnlyList<Transaction> transactions, DateTime monthStart)
+    public static (decimal Income, decimal Expense) AverageMonthlyFlow(IReadOnlyList<Transaction> transactions, DateTime monthStart)
     {
         var regular = transactions.Where(t => t.InstallmentPlanId is null).ToList();
 

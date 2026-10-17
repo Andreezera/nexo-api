@@ -277,6 +277,11 @@ static List<EvalCase> BuildCases()
         new(New, "o último foi 40 reais", IntentType.EditLastTransaction, Amount: 40m),
         new(New, "muda a categoria do último para lazer", IntentType.EditLastTransaction, Category: TransactionCategory.Lazer),
 
+        // ritmo do mês
+        new(New, "como estou esse mês?", IntentType.QueryMonthPace),
+        new(New, "quanto posso gastar por dia?", IntentType.QueryMonthPace),
+        new(New, "vou fechar o mês no vermelho?", IntentType.QueryMonthPace),
+
         // contas recorrentes
         new(New, "netflix 55,90 todo dia 10", IntentType.CreateRecurringTransaction, Type: TransactionType.Expense, Amount: 55.90m, Category: TransactionCategory.Assinaturas, DayOfMonth: 10),
         new(New, "aluguel de 1200 todo dia 5", IntentType.CreateRecurringTransaction, Type: TransactionType.Expense, Amount: 1200m, Category: TransactionCategory.Moradia, DayOfMonth: 5),
