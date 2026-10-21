@@ -52,6 +52,67 @@ public class GeminiIntentParserTests
     }
 
     [Fact]
+    public void Map_QueryTransactions_ReadsFilterPeriodKindAndAggregation()
+    {
+        var dto = new ExtractedIntentDto
+        {
+            Intent = "QueryTransactions", SearchText = " uber ", Category = "Todas", Kind = "Gasto", Aggregation = "Quantidade",
+            StartDate = "2026-01-01", EndDate = "2026-11-25"
+        };
+
+        var intent = GeminiIntentParser.Map(dto, Today, "quantas vezes usei uber esse ano?");
+
+        Assert.Equal(IntentType.QueryTransactions, intent.Type);
+        Assert.Equal("uber", intent.SearchText);
+        Assert.Null(intent.Category);
+        Assert.Equal(TransactionType.Expense, intent.Kind);
+        Assert.Equal(SearchAggregation.Count, intent.Aggregation);
+        Assert.Equal(new DateTime(2026, 1, 1), intent.StartDate);
+        Assert.Equal(new DateTime(2026, 11, 25), intent.EndDate);
+    }
+
+    [Theory]
+    [InlineData("Receita", TransactionType.Income)]
+    [InlineData("Gasto", TransactionType.Expense)]
+    [InlineData(null, TransactionType.Expense)]
+    public void Map_QueryTransactions_KindDefaultsToExpense(string? kind, TransactionType expected)
+    {
+        var intent = GeminiIntentParser.Map(new ExtractedIntentDto { Intent = "QueryTransactions", Kind = kind }, Today, null);
+
+        Assert.Equal(expected, intent.Kind);
+    }
+
+    [Fact]
+    public void Map_QueryTransactions_BothKindsMeansNoFilter()
+    {
+        var intent = GeminiIntentParser.Map(new ExtractedIntentDto { Intent = "QueryTransactions", Kind = "Ambos" }, Today, null);
+
+        Assert.Null(intent.Kind);
+    }
+
+    [Fact]
+    public void Map_QueryTransactions_SwapsAnInvertedPeriodAndIgnoresInvalidDates()
+    {
+        var swapped = GeminiIntentParser.Map(
+            new ExtractedIntentDto { Intent = "QueryTransactions", StartDate = "2026-11-30", EndDate = "2026-11-01" }, Today, null);
+        var invalid = GeminiIntentParser.Map(
+            new ExtractedIntentDto { Intent = "QueryTransactions", StartDate = "ontem", EndDate = "" }, Today, null);
+
+        Assert.Equal(new DateTime(2026, 11, 1), swapped.StartDate);
+        Assert.Equal(new DateTime(2026, 11, 30), swapped.EndDate);
+        Assert.Null(invalid.StartDate);
+        Assert.Null(invalid.EndDate);
+    }
+
+    [Fact]
+    public void Map_QueryTransactions_AggregationDefaultsToSum()
+    {
+        var intent = GeminiIntentParser.Map(new ExtractedIntentDto { Intent = "QueryTransactions" }, Today, null);
+
+        Assert.Equal(SearchAggregation.Sum, intent.Aggregation);
+    }
+
+    [Fact]
     public void Map_RegisterTransaction_BuildsParsedTransaction()
     {
         var dto = new ExtractedIntentDto

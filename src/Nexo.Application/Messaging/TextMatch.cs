@@ -22,6 +22,14 @@ public static class TextMatch
         return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
+    // True se o texto contém o termo, ignorando acento e maiúscula.
+    public static bool Contains(string? text, string? term)
+    {
+        var a = Normalize(text);
+        var b = Normalize(term);
+        return b.Length > 0 && a.Contains(b);
+    }
+
     // True se um dos textos contém o outro. Assim "netflix" casa com "Assinatura Netflix" e vice-versa.
     public static bool Matches(string? text, string? term)
     {

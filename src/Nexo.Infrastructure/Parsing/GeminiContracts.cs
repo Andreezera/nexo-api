@@ -33,6 +33,11 @@ public class ExtractedIntentDto
     public int? RecentCount { get; set; }
     public string? Chart { get; set; }
     public int? DayOfMonth { get; set; }
+    public string? SearchText { get; set; }
+    public string? StartDate { get; set; }
+    public string? EndDate { get; set; }
+    public string? Kind { get; set; }
+    public string? Aggregation { get; set; }
     public string? Reply { get; set; }
 }
 

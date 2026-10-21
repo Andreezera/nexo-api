@@ -132,6 +132,11 @@ static (bool Ok, bool IntentOk, string Detail) Evaluate(EvalCase testCase, Messa
         if (testCase.MonthOffset is { } month && intent.MonthOffset != month) problems.Add($"mês {intent.MonthOffset}");
         if (testCase.RecentCount is { } recent && intent.RecentCount != recent) problems.Add($"quantidade {intent.RecentCount}");
         if (testCase.Chart is { } chart && intent.Chart != chart) problems.Add($"gráfico {intent.Chart}");
+        if (testCase.SearchText is { } text && !string.Equals(intent.SearchText, text, StringComparison.OrdinalIgnoreCase)) problems.Add($"palavra {intent.SearchText}");
+        if (testCase.Aggregation is { } aggregation && intent.Aggregation != aggregation) problems.Add($"agregação {intent.Aggregation}");
+        if (testCase.Kind is { } kind && intent.Kind != kind) problems.Add($"tipo {intent.Kind}");
+        if (testCase.StartDate is { } startDate && intent.StartDate != startDate) problems.Add($"início {intent.StartDate:yyyy-MM-dd}");
+        if (testCase.EndDate is { } endDate && intent.EndDate != endDate) problems.Add($"fim {intent.EndDate:yyyy-MM-dd}");
     }
 
     return problems.Count == 0 ? (true, true, "") : (false, true, string.Join(", ", problems));
@@ -282,6 +287,15 @@ static List<EvalCase> BuildCases()
         new(New, "quanto posso gastar por dia?", IntentType.QueryMonthPace),
         new(New, "vou fechar o mês no vermelho?", IntentType.QueryMonthPace),
 
+        // perguntas livres sobre os lançamentos
+        new(New, "quanto gastei com uber esse ano?", IntentType.QueryTransactions, SearchText: "uber", Aggregation: SearchAggregation.Sum, Kind: TransactionType.Expense, StartDate: new DateTime(DateTime.UtcNow.Year, 1, 1)),
+        new(New, "quantas vezes pedi ifood em outubro?", IntentType.QueryTransactions, SearchText: "ifood", Aggregation: SearchAggregation.Count, StartDate: new DateTime(DateTime.UtcNow.Year, 10, 1), EndDate: new DateTime(DateTime.UtcNow.Year, 10, 31)),
+        new(New, "qual foi meu maior gasto esse mês?", IntentType.QueryTransactions, Aggregation: SearchAggregation.Largest, Kind: TransactionType.Expense),
+        new(New, "qual a média dos meus gastos com uber?", IntentType.QueryTransactions, SearchText: "uber", Aggregation: SearchAggregation.Average),
+        new(New, "me mostra tudo que gastei com farmácia", IntentType.QueryTransactions, Aggregation: SearchAggregation.List),
+        new(New, "quanto recebi de freelance esse ano?", IntentType.QueryTransactions, Kind: TransactionType.Income, Aggregation: SearchAggregation.Sum),
+        new(New, "quanto gastei com padaria no mês passado?", IntentType.QueryTransactions, SearchText: "padaria", Aggregation: SearchAggregation.Sum),
+
         // contas recorrentes
         new(New, "netflix 55,90 todo dia 10", IntentType.CreateRecurringTransaction, Type: TransactionType.Expense, Amount: 55.90m, Category: TransactionCategory.Assinaturas, DayOfMonth: 10),
         new(New, "aluguel de 1200 todo dia 5", IntentType.CreateRecurringTransaction, Type: TransactionType.Expense, Amount: 1200m, Category: TransactionCategory.Moradia, DayOfMonth: 5),
@@ -314,6 +328,11 @@ record EvalCase(
     int? DayOffset = null,
     ChartKind? Chart = null,
     int? DayOfMonth = null,
+    string? SearchText = null,
+    SearchAggregation? Aggregation = null,
+    TransactionType? Kind = null,
+    DateTime? StartDate = null,
+    DateTime? EndDate = null,
     (string User, string Assistant)? Context = null);
 
 record CaseResult(EvalCase Case, MessageIntent? Intent, TimeSpan Elapsed, bool ProviderFailed, bool Ok, bool IntentOk, string Detail);

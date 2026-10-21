@@ -89,6 +89,7 @@ public class ConversationService
 
         var history = await _historyRepository.GetRecentAsync(user.Id, HistoryTurns, cancellationToken);
         var intent = await _intentParser.ParseAsync(content, history, cancellationToken);
+        intent = intent is null ? null : intent with { OriginalText = content.Text };
 
         var result = intent is null
             ? new RegisterMessageResult(false, ProviderFailureMessage)

@@ -5,6 +5,7 @@ using Nexo.Api.Workers;
 using Nexo.Application.Charts;
 using Nexo.Application.Recurring;
 using Nexo.Application.Reports;
+using Nexo.Application.Search;
 using Nexo.Infrastructure.Charts;
 using Nexo.Api.WhatsApp;
 using Nexo.Application.Conversation;
@@ -42,6 +43,9 @@ builder.Services.AddScoped<IRecurringTransactionRepository, RecurringTransaction
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
 builder.Services.AddScoped<IIntentHandler, RecurringIntentHandler>();
 builder.Services.AddHostedService<RecurringTransactionWorker>();
+builder.Services.AddHttpClient<IReplyComposer, GeminiReplyComposer>();
+builder.Services.AddScoped<ITransactionSearchService, TransactionSearchService>();
+builder.Services.AddScoped<IIntentHandler, TransactionSearchIntentHandler>();
 builder.Services.AddScoped<IMonthPaceService, MonthPaceService>();
 builder.Services.AddScoped<IIntentHandler, MonthPaceIntentHandler>();
 builder.Services.AddScoped<IReportService, ReportService>();

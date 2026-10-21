@@ -21,7 +21,17 @@ public enum IntentType
     CreateRecurringTransaction,
     QueryRecurringTransactions,
     CancelRecurringTransaction,
-    QueryMonthPace
+    QueryMonthPace,
+    QueryTransactions
+}
+
+public enum SearchAggregation
+{
+    Sum,
+    Count,
+    Average,
+    Largest,
+    List
 }
 
 public enum ChartKind
@@ -34,6 +44,9 @@ public enum ChartKind
 // Reply: resposta pronta da IA para mensagens que não são nenhuma das intenções acima.
 // Chart: qual gráfico foi pedido. Description: novo texto do lançamento (corrigir o último) ou nome da conta
 // recorrente a cancelar. DayOfMonth: dia do mês de uma conta recorrente.
+// Pergunta livre (QueryTransactions): SearchText é a palavra procurada na descrição, StartDate/EndDate o período
+// (nulos valem "todo o histórico até hoje"), Kind o tipo (nulo é gasto e receita) e Aggregation o que o usuário quer saber.
+// OriginalText é o texto que o usuário escreveu, para a resposta soar como resposta à pergunta dele.
 public record MessageIntent(
     IntentType Type,
     ParsedTransaction? Transaction = null,
@@ -45,4 +58,10 @@ public record MessageIntent(
     string? Reply = null,
     ChartKind? Chart = null,
     string? Description = null,
-    int? DayOfMonth = null);
+    int? DayOfMonth = null,
+    string? SearchText = null,
+    DateTime? StartDate = null,
+    DateTime? EndDate = null,
+    TransactionType? Kind = null,
+    SearchAggregation? Aggregation = null,
+    string? OriginalText = null);

@@ -19,6 +19,8 @@ public class GeminiIntentParser : IMessageIntentParser
         A data de hoje é {today:yyyy-MM-dd}.
         Você recebe a mensagem atual do usuário (texto, áudio ou foto) e, antes dela, as mensagens recentes da conversa.
         Use a conversa como contexto para entender referências como "e no mês passado?", "e com lazer?" ou "esse mesmo valor".
+        Quando escrever em "reply", fale de um jeito caloroso, natural e direto, como uma pessoa de confiança que cuida do
+        dinheiro de um amigo, sem frases de robô.
 
         Classifique a mensagem em "intent":
         - RegisterTransaction: o usuário relata um gasto, uma receita ou uma compra parcelada. Vale também para áudio contando
@@ -48,6 +50,16 @@ public class GeminiIntentParser : IMessageIntentParser
         - CancelRecurringTransaction: pede para cancelar uma conta recorrente ("cancela a netflix"). Em "description" vai o nome.
         - QueryMonthPace: pergunta como está o mês até agora, quanto ainda pode gastar por dia, se vai fechar o mês no azul ou
           no vermelho, ou como o mês deve terminar ("como estou esse mês?", "quanto posso gastar por dia?").
+        - QueryTransactions: pergunta livre sobre os lançamentos que vai além de "total do mês" ou "total de uma categoria no
+          mês": quanto gastou ou recebeu com algo específico ("uber", "ifood", "padaria"), quantas vezes, a média, o maior
+          gasto, uma lista, ou em um período qualquer ("esse ano", "em outubro", "semana passada"). Preencha "searchText"
+          com a palavra procurada na descrição (vazio se for só por categoria, ou se a palavra for o nome de uma categoria,
+          caso em que use "category"), "kind" ("Gasto", "Receita" ou "Ambos"), "aggregation" ("Soma" para quanto, "Quantidade"
+          para quantas vezes, "Media", "Maior" ou "Lista") e "startDate"/"endDate" (AAAA-MM-DD) do período, calculados a partir
+          da data de hoje. Quando houver período, preencha SEMPRE as duas datas: "startDate" é o primeiro dia e "endDate" o último
+          dia do período (para "outubro", de 2026-10-01 a 2026-10-31; para "esse ano", de 01/01 até a data de hoje).
+          Sem período, deixe as duas datas vazias. QuerySpending continua valendo para o gasto total, ou de uma
+          categoria, em UM mês.
         - Unknown: qualquer outra coisa. Em "reply" escreva uma resposta curta e simpática em português, ou uma pergunta
           pedindo o que faltou. Não invente dados financeiros.
 
@@ -90,6 +102,11 @@ public class GeminiIntentParser : IMessageIntentParser
             recentCount = new { type = "INTEGER" },
             chart = new { type = "STRING", @enum = new[] { "Categorias", "Mensal" } },
             dayOfMonth = new { type = "INTEGER" },
+            searchText = new { type = "STRING" },
+            startDate = new { type = "STRING" },
+            endDate = new { type = "STRING" },
+            kind = new { type = "STRING", @enum = new[] { "Gasto", "Receita", "Ambos" } },
+            aggregation = new { type = "STRING", @enum = new[] { "Soma", "Quantidade", "Media", "Maior", "Lista" } },
             reply = new { type = "STRING" }
         },
         required = new[] { "intent", "type", "amount", "category", "description", "occurredAtDate", "monthOffset", "reply" }
@@ -186,6 +203,35 @@ public class GeminiIntentParser : IMessageIntentParser
             return new MessageIntent(IntentType.RegisterTransaction, Transaction: transaction);
         }
 
+        if (type == IntentType.QueryTransactions)
+        {
+            var start = ParseDate(dto.StartDate);
+            var end = ParseDate(dto.EndDate);
+            if (start is not null && end is not null && start > end)
+                (start, end) = (end, start);
+
+            return new MessageIntent(
+                IntentType.QueryTransactions,
+                Category: category,
+                SearchText: string.IsNullOrWhiteSpace(dto.SearchText) ? null : dto.SearchText.Trim(),
+                StartDate: start,
+                EndDate: end,
+                Kind: dto.Kind switch
+                {
+                    "Receita" => TransactionType.Income,
+                    "Ambos" => null,
+                    _ => TransactionType.Expense
+                },
+                Aggregation: dto.Aggregation switch
+                {
+                    "Quantidade" => SearchAggregation.Count,
+                    "Media" => SearchAggregation.Average,
+                    "Maior" => SearchAggregation.Largest,
+                    "Lista" => SearchAggregation.List,
+                    _ => SearchAggregation.Sum
+                });
+        }
+
         if (type == IntentType.CreateRecurringTransaction)
         {
             // Sem valor, o tratador pede o que falta. Com valor, a conta já vai montada.
@@ -213,6 +259,12 @@ public class GeminiIntentParser : IMessageIntentParser
             Chart: type == IntentType.QueryChart ? ParseChart(dto.Chart) : null,
             Description: string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description);
     }
+
+    private static DateTime? ParseDate(string? text) =>
+        DateTime.TryParseExact(text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var date)
+            ? date.Date
+            : null;
 
     private static ChartKind ParseChart(string? chart) =>
         string.Equals(chart, "Mensal", StringComparison.OrdinalIgnoreCase) ? ChartKind.Monthly : ChartKind.Categories;
