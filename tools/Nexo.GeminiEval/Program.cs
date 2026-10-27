@@ -137,6 +137,8 @@ static (bool Ok, bool IntentOk, string Detail) Evaluate(EvalCase testCase, Messa
         if (testCase.Kind is { } kind && intent.Kind != kind) problems.Add($"tipo {intent.Kind}");
         if (testCase.StartDate is { } startDate && intent.StartDate != startDate) problems.Add($"início {intent.StartDate:yyyy-MM-dd}");
         if (testCase.EndDate is { } endDate && intent.EndDate != endDate) problems.Add($"fim {intent.EndDate:yyyy-MM-dd}");
+        if (testCase.TargetDate is { } targetDate && intent.TargetDate != targetDate) problems.Add($"prazo {intent.TargetDate:yyyy-MM-dd}");
+        if (testCase.NoTargetDate && intent.TargetDate is not null) problems.Add($"prazo {intent.TargetDate:yyyy-MM-dd}");
     }
 
     return problems.Count == 0 ? (true, true, "") : (false, true, string.Join(", ", problems));
@@ -212,6 +214,14 @@ string WriteMarkdown(List<ModelResult> results, List<EvalCase> evalCases)
     var path = Path.Combine(dir ?? Directory.GetCurrentDirectory(), "docs", "avaliacao-modelos.md");
     File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
     return path;
+}
+
+// Último dia do próximo mês "month" que ainda não passou (é o que "até junho" deve virar).
+static DateTime NextMonthEnd(int month)
+{
+    var today = DateTime.UtcNow;
+    var year = month < today.Month ? today.Year + 1 : today.Year;
+    return new DateTime(year, month, DateTime.DaysInMonth(year, month));
 }
 
 static List<EvalCase> BuildCases()
@@ -298,6 +308,15 @@ static List<EvalCase> BuildCases()
         new(New, "quanto gastei com padaria esse ano?", IntentType.QueryTransactions, SearchText: "padaria", CategoryMustBeEmpty: true, StartDate: new DateTime(DateTime.UtcNow.Year, 1, 1)),
         new(New, "quanto gastei com padaria no mês passado?", IntentType.QueryTransactions, SearchText: "padaria", Aggregation: SearchAggregation.Sum),
 
+        // metas de economia
+        new(New, "quero juntar 3000 até junho", IntentType.CreateSavingsGoal, Amount: 3000m, TargetDate: NextMonthEnd(6)),
+        new(New, "meta de 5000 para a viagem até dezembro", IntentType.CreateSavingsGoal, Amount: 5000m, TargetDate: NextMonthEnd(12)),
+        new(New, "quero guardar 1000 sem pressa", IntentType.CreateSavingsGoal, Amount: 1000m, NoTargetDate: true),
+        new(New, "guardei 200 pra viagem", IntentType.AddToSavingsGoal, Amount: 200m),
+        new(New, "separei 300 para a meta", IntentType.AddToSavingsGoal, Amount: 300m),
+        new(New, "como está minha meta?", IntentType.QuerySavingsGoals),
+        new(New, "quanto falta pra viagem?", IntentType.QuerySavingsGoals),
+
         // contas recorrentes
         new(New, "netflix 55,90 todo dia 10", IntentType.CreateRecurringTransaction, Type: TransactionType.Expense, Amount: 55.90m, Category: TransactionCategory.Assinaturas, DayOfMonth: 10),
         new(New, "aluguel de 1200 todo dia 5", IntentType.CreateRecurringTransaction, Type: TransactionType.Expense, Amount: 1200m, Category: TransactionCategory.Moradia, DayOfMonth: 5),
@@ -335,6 +354,8 @@ record EvalCase(
     TransactionType? Kind = null,
     DateTime? StartDate = null,
     DateTime? EndDate = null,
+    DateTime? TargetDate = null,
+    bool NoTargetDate = false,
     (string User, string Assistant)? Context = null);
 
 record CaseResult(EvalCase Case, MessageIntent? Intent, TimeSpan Elapsed, bool ProviderFailed, bool Ok, bool IntentOk, string Detail);

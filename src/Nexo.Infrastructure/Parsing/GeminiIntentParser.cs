@@ -62,6 +62,13 @@ public class GeminiIntentParser : IMessageIntentParser
           Se a pergunta NÃO menciona nenhum período, "startDate" e "endDate" DEVEM ficar vazios, o que vale todo o histórico.
           Não invente período. Em "category" use uma categoria SOMENTE se o usuário citou uma; senão use "Todas", nunca "Outros". QuerySpending continua valendo para o gasto total, ou de uma
           categoria, em UM mês.
+        - CreateSavingsGoal: quer juntar, guardar ou economizar um valor, com ou sem prazo ("quero juntar 3000 até junho",
+          "meta de 5000 para a viagem até dezembro"). "amount" é o valor da meta, "description" o nome dela (ex: "viagem",
+          vazio se não disser) e "targetDate" (AAAA-MM-DD) o último dia do mês do prazo, sempre no futuro (se o mês já
+          passou neste ano, use o próximo ano). Sem prazo, deixe "targetDate" vazio.
+        - AddToSavingsGoal: conta que guardou ou separou dinheiro para uma meta ("guardei 200", "separei 300 pra viagem").
+          "amount" é o valor e "description" o nome da meta (vazio se não citar). Isso NÃO é um gasto.
+        - QuerySavingsGoals: pergunta como estão as metas ("como está minha meta?", "minhas metas", "quanto falta pra viagem?").
         - Unknown: qualquer outra coisa. Em "reply" escreva uma resposta curta e simpática em português, ou uma pergunta
           pedindo o que faltou. Não invente dados financeiros.
 
@@ -76,8 +83,8 @@ public class GeminiIntentParser : IMessageIntentParser
         - "occurredAtDate" é a data da transação (AAAA-MM-DD), calculada a partir de referências como "ontem" ou
           "sexta-feira passada", tendo a data de hoje como base. Sem referência, use a data de hoje.
         - Todos os campos são obrigatórios no JSON. Quando não se aplicarem, preencha "type" com "expense", "amount" com 0,
-          "category" com "Todas", "description" e "reply" com string vazia, "occurredAtDate" com a data de hoje e
-          "monthOffset" com 0.
+          "category" com "Todas", "description" e "reply" com string vazia, "occurredAtDate" com a data de hoje,
+          "monthOffset" com 0 e "startDate", "endDate" e "targetDate" com string vazia.
         - Nunca invente valores. Se for um registro e não houver um valor claro, use Unknown e peça o valor em "reply".
         - O assunto escrito na mensagem atual vale mais que a conversa anterior. Use a conversa só quando a mensagem atual
           for uma continuação clara (como "e no mês passado?"). Se ela trouxer um assunto novo, ignore o que veio antes.
@@ -109,9 +116,10 @@ public class GeminiIntentParser : IMessageIntentParser
             endDate = new { type = "STRING" },
             kind = new { type = "STRING", @enum = new[] { "Gasto", "Receita", "Ambos" } },
             aggregation = new { type = "STRING", @enum = new[] { "Soma", "Quantidade", "Media", "Maior", "Lista" } },
+            targetDate = new { type = "STRING" },
             reply = new { type = "STRING" }
         },
-        required = new[] { "intent", "type", "amount", "category", "description", "occurredAtDate", "monthOffset", "reply" }
+        required = new[] { "intent", "type", "amount", "category", "description", "occurredAtDate", "monthOffset", "startDate", "endDate", "targetDate", "reply" }
     };
 
     private static readonly JsonSerializerOptions DeserializeOptions = new() { PropertyNameCaseInsensitive = true };
@@ -138,7 +146,7 @@ public class GeminiIntentParser : IMessageIntentParser
             contents = BuildContents(content, recentHistory),
             generationConfig = new
             {
-                temperature = 0.1,
+                temperature = 0.0,
                 responseMimeType = "application/json",
                 responseSchema = ResponseSchema
             }
@@ -205,6 +213,15 @@ public class GeminiIntentParser : IMessageIntentParser
             return new MessageIntent(IntentType.RegisterTransaction, Transaction: transaction);
         }
 
+        if (type is IntentType.CreateSavingsGoal or IntentType.AddToSavingsGoal)
+        {
+            return new MessageIntent(
+                type,
+                Amount: dto.Amount is > 0 ? dto.Amount : null,
+                Description: string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
+                TargetDate: type == IntentType.CreateSavingsGoal ? ParseDate(dto.TargetDate) : null);
+        }
+
         if (type == IntentType.QueryTransactions)
         {
             var start = ParseDate(dto.StartDate);
@@ -212,9 +229,9 @@ public class GeminiIntentParser : IMessageIntentParser
             if (start is not null && end is not null && start > end)
                 (start, end) = (end, start);
 
-            // "Outros" como filtro quase sempre é a IA preenchendo no escuro: gasto de padaria está em Alimentação, não em Outros.
-            // Com uma palavra-chave, a categoria só vale se não for Outros.
-            var searchCategory = !string.IsNullOrWhiteSpace(dto.SearchText) && category == TransactionCategory.Outros ? null : category;
+            // Com uma palavra-chave, a categoria que a IA sugere é ignorada: a palavra é mais específica, e a "padaria" de
+            // alguém pode ter sido lançada em qualquer categoria (a IA costuma chutar "Outros" ou "Alimentação").
+            var searchCategory = string.IsNullOrWhiteSpace(dto.SearchText) ? category : null;
 
             return new MessageIntent(
                 IntentType.QueryTransactions,

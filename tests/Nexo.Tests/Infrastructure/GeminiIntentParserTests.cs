@@ -105,15 +105,43 @@ public class GeminiIntentParserTests
     }
 
     [Fact]
-    public void Map_QueryTransactions_IgnoresTheOthersCategoryWhenThereIsAKeyword()
+    public void Map_QueryTransactions_IgnoresTheSuggestedCategoryWhenThereIsAKeyword()
     {
         var withKeyword = GeminiIntentParser.Map(
-            new ExtractedIntentDto { Intent = "QueryTransactions", SearchText = "padaria", Category = "Outros" }, Today, null);
-        var realCategory = GeminiIntentParser.Map(
             new ExtractedIntentDto { Intent = "QueryTransactions", SearchText = "padaria", Category = "Alimentacao" }, Today, null);
+        var withoutKeyword = GeminiIntentParser.Map(
+            new ExtractedIntentDto { Intent = "QueryTransactions", SearchText = "", Category = "Alimentacao" }, Today, null);
 
         Assert.Null(withKeyword.Category);
-        Assert.Equal(TransactionCategory.Alimentacao, realCategory.Category);
+        Assert.Equal(TransactionCategory.Alimentacao, withoutKeyword.Category);
+    }
+
+    [Fact]
+    public void Map_CreateSavingsGoal_ReadsAmountNameAndDeadline()
+    {
+        var dto = new ExtractedIntentDto
+        {
+            Intent = "CreateSavingsGoal", Amount = 3000m, Description = " viagem ", TargetDate = "2027-06-30"
+        };
+
+        var intent = GeminiIntentParser.Map(dto, Today, null);
+
+        Assert.Equal(IntentType.CreateSavingsGoal, intent.Type);
+        Assert.Equal(3000m, intent.Amount);
+        Assert.Equal("viagem", intent.Description);
+        Assert.Equal(new DateTime(2027, 6, 30), intent.TargetDate);
+    }
+
+    [Fact]
+    public void Map_AddToSavingsGoal_IgnoresTheDeadlineAndZeroAmounts()
+    {
+        var withAmount = GeminiIntentParser.Map(
+            new ExtractedIntentDto { Intent = "AddToSavingsGoal", Amount = 200m, TargetDate = "2027-06-30" }, Today, null);
+        var withoutAmount = GeminiIntentParser.Map(new ExtractedIntentDto { Intent = "AddToSavingsGoal", Amount = 0m }, Today, null);
+
+        Assert.Equal(200m, withAmount.Amount);
+        Assert.Null(withAmount.TargetDate);
+        Assert.Null(withoutAmount.Amount);
     }
 
     [Fact]

@@ -38,6 +38,7 @@ public class ExtractedIntentDto
     public string? EndDate { get; set; }
     public string? Kind { get; set; }
     public string? Aggregation { get; set; }
+    public string? TargetDate { get; set; }
     public string? Reply { get; set; }
 }
 

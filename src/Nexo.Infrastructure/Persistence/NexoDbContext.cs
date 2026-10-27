@@ -13,6 +13,7 @@ public class NexoDbContext : DbContext
     public DbSet<BudgetLimit> BudgetLimits => Set<BudgetLimit>();
     public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
     public DbSet<RecurringTransaction> RecurringTransactions => Set<RecurringTransaction>();
+    public DbSet<SavingsGoal> SavingsGoals => Set<SavingsGoal>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

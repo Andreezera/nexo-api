@@ -22,7 +22,10 @@ public enum IntentType
     QueryRecurringTransactions,
     CancelRecurringTransaction,
     QueryMonthPace,
-    QueryTransactions
+    QueryTransactions,
+    CreateSavingsGoal,
+    AddToSavingsGoal,
+    QuerySavingsGoals
 }
 
 public enum SearchAggregation
@@ -46,6 +49,7 @@ public enum ChartKind
 // recorrente a cancelar. DayOfMonth: dia do mês de uma conta recorrente.
 // Pergunta livre (QueryTransactions): SearchText é a palavra procurada na descrição, StartDate/EndDate o período
 // (nulos valem "todo o histórico até hoje"), Kind o tipo (nulo é gasto e receita) e Aggregation o que o usuário quer saber.
+// Metas: Amount é o valor da meta (ou o valor guardado), Description o nome dela e TargetDate o prazo.
 // OriginalText é o texto que o usuário escreveu, para a resposta soar como resposta à pergunta dele.
 public record MessageIntent(
     IntentType Type,
@@ -64,4 +68,5 @@ public record MessageIntent(
     DateTime? EndDate = null,
     TransactionType? Kind = null,
     SearchAggregation? Aggregation = null,
-    string? OriginalText = null);
+    string? OriginalText = null,
+    DateTime? TargetDate = null);

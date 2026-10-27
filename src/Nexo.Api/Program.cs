@@ -3,6 +3,7 @@ using Nexo.Application.Abstractions;
 using Nexo.Application.Budgets;
 using Nexo.Api.Workers;
 using Nexo.Application.Charts;
+using Nexo.Application.Goals;
 using Nexo.Application.Recurring;
 using Nexo.Application.Reports;
 using Nexo.Application.Search;
@@ -39,6 +40,8 @@ builder.Services.AddScoped<IInstallmentPlanRepository, InstallmentPlanRepository
 builder.Services.AddScoped<IBudgetLimitRepository, BudgetLimitRepository>();
 builder.Services.AddScoped<IBudgetAlertService, BudgetAlertService>();
 builder.Services.AddScoped<IPurchaseProjectionService, PurchaseProjectionService>();
+builder.Services.AddScoped<ISavingsGoalRepository, SavingsGoalRepository>();
+builder.Services.AddScoped<IIntentHandler, SavingsGoalIntentHandler>();
 builder.Services.AddScoped<IRecurringTransactionRepository, RecurringTransactionRepository>();
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
 builder.Services.AddScoped<IIntentHandler, RecurringIntentHandler>();

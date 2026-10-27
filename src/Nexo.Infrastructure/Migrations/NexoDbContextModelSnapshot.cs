@@ -162,6 +162,42 @@ namespace Nexo.Infrastructure.Migrations
                     b.ToTable("RecurringTransactions", (string)null);
                 });
 
+            modelBuilder.Entity("Nexo.Domain.Entities.SavingsGoal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("Deadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("SavedAmount")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("TargetAmount")
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsActive");
+
+                    b.ToTable("SavingsGoals", (string)null);
+                });
+
             modelBuilder.Entity("Nexo.Domain.Entities.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -259,6 +295,15 @@ namespace Nexo.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("Nexo.Domain.Entities.RecurringTransaction", b =>
+                {
+                    b.HasOne("Nexo.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Nexo.Domain.Entities.SavingsGoal", b =>
                 {
                     b.HasOne("Nexo.Domain.Entities.User", null)
                         .WithMany()
