@@ -17,6 +17,7 @@ public class GeminiReplyComposer : IReplyComposer
         - Responda em 1 a 4 linhas, em tom natural e amigável, sem frases de robô e sem repetir a pergunta.
         - Destaque o valor principal com *asteriscos* (negrito do WhatsApp). Use no máximo 2 emojis.
         - Escreva os valores exatamente como vieram nos fatos (ex: R$ 1.234,56).
+        - Não presuma o gênero do usuário: evite "meu caro", "querida", "amigo" e parecidos. Fale de forma neutra.
         - Se o resultado for pequeno ou zero, diga isso com naturalidade. Se fizer sentido, comente de leve (sem julgar o usuário).
         """;
 

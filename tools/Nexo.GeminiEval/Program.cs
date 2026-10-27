@@ -294,6 +294,8 @@ static List<EvalCase> BuildCases()
         new(New, "qual a média dos meus gastos com uber?", IntentType.QueryTransactions, SearchText: "uber", Aggregation: SearchAggregation.Average),
         new(New, "me mostra tudo que gastei com farmácia", IntentType.QueryTransactions, Aggregation: SearchAggregation.List),
         new(New, "quanto recebi de freelance esse ano?", IntentType.QueryTransactions, Kind: TransactionType.Income, Aggregation: SearchAggregation.Sum),
+        new(New, "quanto gastei com uber?", IntentType.QueryTransactions, SearchText: "uber", Aggregation: SearchAggregation.Sum, CategoryMustBeEmpty: true),
+        new(New, "quanto gastei com padaria esse ano?", IntentType.QueryTransactions, SearchText: "padaria", CategoryMustBeEmpty: true, StartDate: new DateTime(DateTime.UtcNow.Year, 1, 1)),
         new(New, "quanto gastei com padaria no mês passado?", IntentType.QueryTransactions, SearchText: "padaria", Aggregation: SearchAggregation.Sum),
 
         // contas recorrentes

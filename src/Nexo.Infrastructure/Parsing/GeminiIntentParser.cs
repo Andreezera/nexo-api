@@ -53,12 +53,14 @@ public class GeminiIntentParser : IMessageIntentParser
         - QueryTransactions: pergunta livre sobre os lançamentos que vai além de "total do mês" ou "total de uma categoria no
           mês": quanto gastou ou recebeu com algo específico ("uber", "ifood", "padaria"), quantas vezes, a média, o maior
           gasto, uma lista, ou em um período qualquer ("esse ano", "em outubro", "semana passada"). Preencha "searchText"
-          com a palavra procurada na descrição (vazio se for só por categoria, ou se a palavra for o nome de uma categoria,
+          SEMPRE que o usuário citar um nome de estabelecimento, app ou item (ifood, uber, padaria, farmácia, netflix),
+          com essa palavra (vazio se for só por categoria, ou se a palavra for o nome de uma categoria,
           caso em que use "category"), "kind" ("Gasto", "Receita" ou "Ambos"), "aggregation" ("Soma" para quanto, "Quantidade"
-          para quantas vezes, "Media", "Maior" ou "Lista") e "startDate"/"endDate" (AAAA-MM-DD) do período, calculados a partir
+          para quantas vezes, "Media", "Maior", ou "Lista" quando pedir para mostrar, listar ou ver "tudo que" gastou) e "startDate"/"endDate" (AAAA-MM-DD) do período, calculados a partir
           da data de hoje. Quando houver período, preencha SEMPRE as duas datas: "startDate" é o primeiro dia e "endDate" o último
           dia do período (para "outubro", de 2026-10-01 a 2026-10-31; para "esse ano", de 01/01 até a data de hoje).
-          Sem período, deixe as duas datas vazias. QuerySpending continua valendo para o gasto total, ou de uma
+          Se a pergunta NÃO menciona nenhum período, "startDate" e "endDate" DEVEM ficar vazios, o que vale todo o histórico.
+          Não invente período. Em "category" use uma categoria SOMENTE se o usuário citou uma; senão use "Todas", nunca "Outros". QuerySpending continua valendo para o gasto total, ou de uma
           categoria, em UM mês.
         - Unknown: qualquer outra coisa. Em "reply" escreva uma resposta curta e simpática em português, ou uma pergunta
           pedindo o que faltou. Não invente dados financeiros.
@@ -210,9 +212,13 @@ public class GeminiIntentParser : IMessageIntentParser
             if (start is not null && end is not null && start > end)
                 (start, end) = (end, start);
 
+            // "Outros" como filtro quase sempre é a IA preenchendo no escuro: gasto de padaria está em Alimentação, não em Outros.
+            // Com uma palavra-chave, a categoria só vale se não for Outros.
+            var searchCategory = !string.IsNullOrWhiteSpace(dto.SearchText) && category == TransactionCategory.Outros ? null : category;
+
             return new MessageIntent(
                 IntentType.QueryTransactions,
-                Category: category,
+                Category: searchCategory,
                 SearchText: string.IsNullOrWhiteSpace(dto.SearchText) ? null : dto.SearchText.Trim(),
                 StartDate: start,
                 EndDate: end,

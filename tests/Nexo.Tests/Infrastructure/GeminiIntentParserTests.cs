@@ -105,6 +105,18 @@ public class GeminiIntentParserTests
     }
 
     [Fact]
+    public void Map_QueryTransactions_IgnoresTheOthersCategoryWhenThereIsAKeyword()
+    {
+        var withKeyword = GeminiIntentParser.Map(
+            new ExtractedIntentDto { Intent = "QueryTransactions", SearchText = "padaria", Category = "Outros" }, Today, null);
+        var realCategory = GeminiIntentParser.Map(
+            new ExtractedIntentDto { Intent = "QueryTransactions", SearchText = "padaria", Category = "Alimentacao" }, Today, null);
+
+        Assert.Null(withKeyword.Category);
+        Assert.Equal(TransactionCategory.Alimentacao, realCategory.Category);
+    }
+
+    [Fact]
     public void Map_QueryTransactions_AggregationDefaultsToSum()
     {
         var intent = GeminiIntentParser.Map(new ExtractedIntentDto { Intent = "QueryTransactions" }, Today, null);
