@@ -120,7 +120,7 @@ public class ConversationService
                 return await _registrar.RegisterAsync(phoneNumber, intent.Transaction, cancellationToken);
 
             case IntentType.ShowMenu:
-                return new RegisterMessageResult(true, Menu);
+                return new RegisterMessageResult(true, Menu, List: InteractiveCommands.MainMenu);
 
             case IntentType.QueryBalance:
                 return new RegisterMessageResult(true, await BalanceReplyAsync(user, cancellationToken));

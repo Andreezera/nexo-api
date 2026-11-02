@@ -3,6 +3,7 @@ using Nexo.Application.Abstractions;
 using Nexo.Application.Budgets;
 using Nexo.Application.Charts;
 using Nexo.Application.Conversation;
+using Nexo.Application.Messaging;
 using Nexo.Application.Projections;
 using Nexo.Application.Reports;
 using Nexo.Application.Transactions;
@@ -43,6 +44,60 @@ public class WhatsAppMessageHandlerTests
             .ReturnsAsync(new MessageIntent(IntentType.QueryChart, Chart: ChartKind.Categories));
         _chartService.Setup(c => c.BuildCategoryChartAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ChartResult(new byte[] { 9, 9, 9 }, "legenda do gráfico"));
+    }
+
+    [Fact]
+    public async Task HandleAsync_ForTheMenuIntent_SendsTheInteractiveList()
+    {
+        _intentParser.Setup(p => p.ParseAsync(It.IsAny<MessageContent>(), It.IsAny<IReadOnlyList<ConversationMessage>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MessageIntent(IntentType.ShowMenu));
+
+        await CreateHandler().HandleAsync(new WhatsAppInboundMessage("id-menu", Phone, "text", Text: "menu"));
+
+        _messenger.Verify(m => m.SendListAsync(Phone, It.Is<InteractiveList>(l => l.ButtonLabel == "Ver opções"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _messenger.Verify(m => m.SendTextAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheListCannotBeSent_FallsBackToTheTextMenu()
+    {
+        _intentParser.Setup(p => p.ParseAsync(It.IsAny<MessageContent>(), It.IsAny<IReadOnlyList<ConversationMessage>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MessageIntent(IntentType.ShowMenu));
+        _messenger.Setup(m => m.SendListAsync(It.IsAny<string>(), It.IsAny<InteractiveList>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("falhou"));
+
+        await CreateHandler().HandleAsync(new WhatsAppInboundMessage("id-menu2", Phone, "text", Text: "menu"));
+
+        _messenger.Verify(m => m.SendTextAsync(Phone, It.Is<string>(t => t.Contains("NEXO")), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheReplyHasButtons_SendsThemWithTheText()
+    {
+        var registrar = new Mock<ITransactionRegistrar>();
+        registrar.Setup(r => r.RegisterAsync(Phone, It.IsAny<Nexo.Application.Parsing.ParsedTransaction>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RegisterMessageResult(true, "Despesa registrada.", Buttons: InteractiveCommands.AfterRegistration));
+        var users = new Mock<IUserRepository>();
+        users.Setup(u => u.GetByPhoneNumberAsync(Phone, It.IsAny<CancellationToken>())).ReturnsAsync(new User(Phone));
+        var history = new Mock<IConversationHistoryRepository>();
+        history.Setup(h => h.GetRecentAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<ConversationMessage>());
+        var parsed = new Nexo.Application.Parsing.ParsedTransaction(
+            Nexo.Domain.Enums.TransactionType.Expense, 30m, Nexo.Domain.Enums.TransactionCategory.Mercado, "Mercado", DateTime.UtcNow, null);
+        _intentParser.Setup(p => p.ParseAsync(It.IsAny<MessageContent>(), It.IsAny<IReadOnlyList<ConversationMessage>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MessageIntent(IntentType.RegisterTransaction, Transaction: parsed));
+        var conversation = new ConversationService(
+            _intentParser.Object, registrar.Object, users.Object, Mock.Of<ITransactionRepository>(),
+            Mock.Of<IBudgetLimitRepository>(), Mock.Of<IBudgetAlertService>(), Mock.Of<IPurchaseProjectionService>(),
+            Mock.Of<IReportService>(), _chartService.Object, history.Object, Mock.Of<IUnitOfWork>(), Array.Empty<IIntentHandler>());
+
+        await new WhatsAppMessageHandler(conversation, _messenger.Object)
+            .HandleAsync(new WhatsAppInboundMessage("id-btn", Phone, "text", Text: "gastei 30 no mercado"));
+
+        _messenger.Verify(m => m.SendButtonsAsync(Phone, "Despesa registrada.",
+            It.Is<IReadOnlyList<ReplyButton>>(b => b.Count == 3 && b[0].Id == InteractiveCommands.Undo),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

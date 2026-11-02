@@ -3,12 +3,19 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nexo.Application.Messaging;
 using Nexo.Application.WhatsApp;
 
 namespace Nexo.Infrastructure.WhatsApp;
 
 public class WhatsAppCloudMessenger : IWhatsAppMessenger
 {
+    // A Meta recusa campos nulos (um rodapé ou uma descrição ausente não pode ir como null), então eles são omitidos.
+    private static readonly System.Text.Json.JsonSerializerOptions IgnoreNulls = new()
+    {
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
     private readonly HttpClient _httpClient;
     private readonly WhatsAppOptions _options;
     private readonly ILogger<WhatsAppCloudMessenger> _logger;
@@ -68,11 +75,64 @@ public class WhatsAppCloudMessenger : IWhatsAppMessenger
         }, cancellationToken);
     }
 
+    // A Meta limita o tamanho dos textos das mensagens interativas (corpo 1024, botão 20, linha 24, descrição 72).
+    public Task SendButtonsAsync(
+        string to, string body, IReadOnlyList<ReplyButton> buttons, CancellationToken cancellationToken = default) =>
+        PostMessageAsync(new
+        {
+            messaging_product = "whatsapp",
+            to,
+            type = "interactive",
+            interactive = new
+            {
+                type = "button",
+                body = new { text = Clip(body, 1024) },
+                action = new
+                {
+                    buttons = buttons.Take(3).Select(b => new
+                    {
+                        type = "reply",
+                        reply = new { id = b.Id, title = Clip(b.Title, 20) }
+                    }).ToArray()
+                }
+            }
+        }, cancellationToken);
+
+    public Task SendListAsync(string to, InteractiveList list, CancellationToken cancellationToken = default) =>
+        PostMessageAsync(new
+        {
+            messaging_product = "whatsapp",
+            to,
+            type = "interactive",
+            interactive = new
+            {
+                type = "list",
+                body = new { text = Clip(list.Body, 1024) },
+                footer = list.Footer is null ? null : new { text = Clip(list.Footer, 60) },
+                action = new
+                {
+                    button = Clip(list.ButtonLabel, 20),
+                    sections = list.Sections.Select(section => new
+                    {
+                        title = Clip(section.Title, 24),
+                        rows = section.Rows.Select(row => new
+                        {
+                            id = row.Id,
+                            title = Clip(row.Title, 24),
+                            description = row.Description is null ? null : Clip(row.Description, 72)
+                        }).ToArray()
+                    }).ToArray()
+                }
+            }
+        }, cancellationToken);
+
+    private static string Clip(string text, int max) => text.Length <= max ? text : text[..(max - 1)] + "…";
+
     private async Task PostMessageAsync(object payload, CancellationToken cancellationToken)
     {
         var url = $"{_options.GraphApiBaseUrl}/{_options.GraphApiVersion}/{_options.PhoneNumberId}/messages";
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(payload) };
+        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(payload, options: IgnoreNulls) };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);

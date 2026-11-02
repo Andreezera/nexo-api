@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Nexo.Application.Messaging;
 using Nexo.Infrastructure.WhatsApp;
 
 namespace Nexo.Tests.Infrastructure;
@@ -125,5 +126,93 @@ public class WhatsAppCloudMessengerTests
             () => Create(handler).SendImageAsync("5511", new byte[] { 1 }, "image/png", null));
 
         Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SendButtonsAsync_PostsAnInteractiveButtonMessage()
+    {
+        var handler = new FakeHandler();
+
+        await Create(handler).SendButtonsAsync("5511999999999", "Despesa registrada.", new[]
+        {
+            new ReplyButton("cmd_undo", "↩️ Desfazer"), new ReplyButton("cmd_saldo", "💼 Saldo")
+        });
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("https://graph.test/v23.0/12345/messages", request.RequestUri!.ToString());
+        Assert.Contains("\"type\":\"interactive\"", handler.Bodies[0]);
+        Assert.Contains("\"type\":\"button\"", handler.Bodies[0]);
+        Assert.Contains("\"id\":\"cmd_undo\"", handler.Bodies[0]);
+        Assert.Contains("Despesa registrada.", handler.Bodies[0]);
+    }
+
+    [Fact]
+    public async Task SendButtonsAsync_SendsAtMostThreeButtonsWithTitlesWithinTheLimit()
+    {
+        var handler = new FakeHandler();
+        var buttons = Enumerable.Range(1, 5).Select(i => new ReplyButton($"b{i}", new string('x', 40))).ToArray();
+
+        await Create(handler).SendButtonsAsync("5511", "oi", buttons);
+
+        Assert.Contains("\"id\":\"b3\"", handler.Bodies[0]);
+        Assert.DoesNotContain("\"id\":\"b4\"", handler.Bodies[0]);
+        Assert.DoesNotContain(new string('x', 21), handler.Bodies[0]);
+    }
+
+    [Fact]
+    public async Task SendListAsync_PostsSectionsAndRows()
+    {
+        var handler = new FakeHandler();
+        var list = new InteractiveList("Escolha", "Ver opções", new[]
+        {
+            new ListSection("Consultar", new[] { new ListRow("cmd_saldo", "Saldo", "Quanto você tem") })
+        }, Footer: "Digite menu");
+
+        await Create(handler).SendListAsync("5511999999999", list);
+
+        Assert.Contains("\"type\":\"list\"", handler.Bodies[0]);
+        // O JSON escapa letras acentuadas (\u00E7), então a verificação usa só o começo do texto.
+        Assert.Contains("\"button\":\"Ver op", handler.Bodies[0]);
+        Assert.Contains("\"title\":\"Consultar\"", handler.Bodies[0]);
+        Assert.Contains("\"id\":\"cmd_saldo\"", handler.Bodies[0]);
+        Assert.Contains("\"description\":\"Quanto voc", handler.Bodies[0]);
+        Assert.Contains("Digite menu", handler.Bodies[0]);
+    }
+
+    [Fact]
+    public async Task SendListAsync_OmitsMissingFooterAndDescriptionInsteadOfSendingNull()
+    {
+        var handler = new FakeHandler();
+        var list = new InteractiveList("Escolha", "Ver", new[] { new ListSection("A", new[] { new ListRow("r1", "Linha") }) });
+
+        await Create(handler).SendListAsync("5511", list);
+
+        Assert.DoesNotContain("null", handler.Bodies[0]);
+        Assert.DoesNotContain("footer", handler.Bodies[0]);
+        Assert.DoesNotContain("description", handler.Bodies[0]);
+    }
+
+    [Fact]
+    public async Task SendListAsync_ClipsTitlesLongerThanTheMetaLimit()
+    {
+        var handler = new FakeHandler();
+        var list = new InteractiveList("Escolha", "Ver", new[]
+        {
+            new ListSection("A", new[] { new ListRow("r1", new string('y', 60), new string('z', 120)) })
+        });
+
+        await Create(handler).SendListAsync("5511", list);
+
+        Assert.DoesNotContain(new string('y', 25), handler.Bodies[0]);
+        Assert.DoesNotContain(new string('z', 73), handler.Bodies[0]);
+    }
+
+    [Fact]
+    public async Task SendListAsync_WhenMetaRejects_Throws()
+    {
+        var handler = new FakeHandler { Respond = _ => new HttpResponseMessage(HttpStatusCode.BadRequest) };
+        var list = new InteractiveList("x", "y", new[] { new ListSection("A", new[] { new ListRow("r", "t") }) });
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => Create(handler).SendListAsync("5511", list));
     }
 }

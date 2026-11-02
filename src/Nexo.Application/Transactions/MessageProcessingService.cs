@@ -3,6 +3,7 @@ using Nexo.Application.Budgets;
 using Nexo.Application.Parsing;
 using Nexo.Domain.Entities;
 using Nexo.Domain.Enums;
+using Nexo.Application.Messaging;
 using static Nexo.Application.Messaging.MessageFormatter;
 
 namespace Nexo.Application.Transactions;
@@ -71,7 +72,8 @@ public class MessageProcessingService : ITransactionRegistrar
                 $"✅ *Compra parcelada registrada*\n{parsed.Category.ToEmoji()} {parsed.Category.ToDisplayName()} · {Money(parsed.Amount)}\n"
                 + $"📝 {parsed.Description}\n💳 {parsed.InstallmentCount}x de {Money(installmentValue)}";
             return new RegisterMessageResult(true,
-                await AppendBudgetAlertAsync(installmentReply, user.Id, parsed, cancellationToken));
+                await AppendBudgetAlertAsync(installmentReply, user.Id, parsed, cancellationToken),
+                Buttons: InteractiveCommands.AfterRegistration);
         }
 
         var transaction = new Transaction(
@@ -87,7 +89,8 @@ public class MessageProcessingService : ITransactionRegistrar
             $"{heading}\n{parsed.Category.ToEmoji()} {parsed.Category.ToDisplayName()} · {Money(parsed.Amount)}\n"
             + (showDescription ? $"📝 {parsed.Description}\n" : "")
             + $"📅 {parsed.OccurredAt:dd/MM}";
-        return new RegisterMessageResult(true, await AppendBudgetAlertAsync(reply, user.Id, parsed, cancellationToken));
+        return new RegisterMessageResult(true, await AppendBudgetAlertAsync(reply, user.Id, parsed, cancellationToken),
+            Buttons: InteractiveCommands.AfterRegistration);
     }
 
     // Só despesas contam para os limites de gasto. O alerta vai junto da resposta, na mesma mensagem.

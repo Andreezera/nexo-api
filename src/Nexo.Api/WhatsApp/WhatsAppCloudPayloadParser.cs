@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Nexo.Application.Messaging;
 using Nexo.Application.WhatsApp;
 
 namespace Nexo.Api.WhatsApp;
@@ -64,6 +65,11 @@ public static class WhatsAppCloudPayloadParser
             "text" when raw.TryGetProperty("text", out var text) =>
                 new WhatsAppInboundMessage(id, from, type, Text: GetString(text, "body")),
 
+            // Toque num botão ou numa linha de lista. O id vira a frase que o usuário escreveria, e o resto do
+            // sistema trata como texto comum. Se o id for desconhecido, vale o título que a pessoa viu.
+            "interactive" when raw.TryGetProperty("interactive", out var interactive) =>
+                ParseInteractive(id, from, interactive),
+
             "audio" or "image" when raw.TryGetProperty(type, out var media) =>
                 new WhatsAppInboundMessage(
                     id, from, type,
@@ -73,6 +79,20 @@ public static class WhatsAppCloudPayloadParser
 
             _ => new WhatsAppInboundMessage(id, from, type)
         };
+    }
+
+    private static WhatsAppInboundMessage? ParseInteractive(string id, string from, JsonElement interactive)
+    {
+        var reply = interactive.TryGetProperty("button_reply", out var button) ? button
+            : interactive.TryGetProperty("list_reply", out var list) ? list
+            : (JsonElement?)null;
+        if (reply is null)
+            return new WhatsAppInboundMessage(id, from, "interactive");
+
+        var phrase = InteractiveCommands.PhraseFor(GetString(reply.Value, "id")) ?? GetString(reply.Value, "title");
+        return phrase is null
+            ? new WhatsAppInboundMessage(id, from, "interactive")
+            : new WhatsAppInboundMessage(id, from, "text", Text: phrase);
     }
 
     private static string? GetString(JsonElement element, string property) =>

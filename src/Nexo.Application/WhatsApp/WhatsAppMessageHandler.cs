@@ -33,17 +33,29 @@ public class WhatsAppMessageHandler
 
         var result = await _conversationService.HandleAsync(message.From, content, cancellationToken);
 
-        if (result.Image is { } image)
+        try
         {
-            try
+            if (result.Image is { } image)
             {
                 await _messenger.SendImageAsync(message.From, image.Data, image.MimeType, result.ReplyMessage, cancellationToken);
                 return;
             }
-            catch (HttpRequestException)
+
+            if (result.List is { } list)
             {
-                // Se a imagem não puder ser enviada, o usuário ainda recebe o texto da legenda.
+                await _messenger.SendListAsync(message.From, list, cancellationToken);
+                return;
             }
+
+            if (result.Buttons is { Count: > 0 } buttons)
+            {
+                await _messenger.SendButtonsAsync(message.From, result.ReplyMessage, buttons, cancellationToken);
+                return;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            // Se a imagem, a lista ou os botões não puderem ser enviados, o usuário ainda recebe o texto.
         }
 
         await _messenger.SendTextAsync(message.From, result.ReplyMessage, cancellationToken);
