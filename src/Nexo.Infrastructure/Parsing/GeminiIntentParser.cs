@@ -63,8 +63,8 @@ public class GeminiIntentParser : IMessageIntentParser
           Não invente período. Em "category" use uma categoria SOMENTE se o usuário citou uma; senão use "Todas", nunca "Outros". QuerySpending continua valendo para o gasto total, ou de uma
           categoria, em UM mês.
         - CreateSavingsGoal: quer juntar, guardar ou economizar um valor, com ou sem prazo ("quero juntar 3000 até junho",
-          "meta de 5000 para a viagem até dezembro"). "amount" é o valor da meta, "description" o nome dela (ex: "viagem",
-          vazio se não disser) e "targetDate" (AAAA-MM-DD) o último dia do mês do prazo, sempre no futuro (se o mês já
+          "meta de 5000 para a viagem até dezembro"). "amount" é o valor da meta, "description" o nome ou a finalidade dela (ex: "viagem",
+          "carro", "reserva de emergência"), NUNCA um verbo como "juntar" ou "guardar", e vazio se a pessoa não disser e "targetDate" (AAAA-MM-DD) o último dia do mês do prazo, sempre no futuro (se o mês já
           passou neste ano, use o próximo ano). Sem prazo, deixe "targetDate" vazio.
         - AddToSavingsGoal: conta que guardou ou separou dinheiro para uma meta ("guardei 200", "separei 300 pra viagem").
           "amount" é o valor e "description" o nome da meta (vazio se não citar). Isso NÃO é um gasto.
@@ -218,7 +218,7 @@ public class GeminiIntentParser : IMessageIntentParser
             return new MessageIntent(
                 type,
                 Amount: dto.Amount is > 0 ? dto.Amount : null,
-                Description: string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
+                Description: GoalName(dto.Description),
                 TargetDate: type == IntentType.CreateSavingsGoal ? ParseDate(dto.TargetDate) : null);
         }
 
@@ -281,6 +281,18 @@ public class GeminiIntentParser : IMessageIntentParser
             Reply: string.IsNullOrWhiteSpace(dto.Reply) ? null : dto.Reply,
             Chart: type == IntentType.QueryChart ? ParseChart(dto.Chart) : null,
             Description: string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description);
+    }
+
+    // A IA às vezes devolve o verbo da frase ("juntar") como se fosse o nome da meta. Isso não é um nome.
+    private static readonly HashSet<string> NotGoalNames = new() { "juntar", "guardar", "economizar", "poupar", "meta", "separar", "reservar" };
+
+    private static string? GoalName(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            return null;
+
+        var name = description.Trim();
+        return NotGoalNames.Contains(Nexo.Application.Messaging.TextMatch.Normalize(name)) ? null : name;
     }
 
     private static DateTime? ParseDate(string? text) =>

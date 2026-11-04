@@ -132,6 +132,18 @@ public class GeminiIntentParserTests
         Assert.Equal(new DateTime(2027, 6, 30), intent.TargetDate);
     }
 
+    [Theory]
+    [InlineData("juntar")]
+    [InlineData("Guardar")]
+    [InlineData("  META ")]
+    public void Map_CreateSavingsGoal_IgnoresAVerbUsedAsTheName(string description)
+    {
+        var intent = GeminiIntentParser.Map(
+            new ExtractedIntentDto { Intent = "CreateSavingsGoal", Amount = 3000m, Description = description }, Today, null);
+
+        Assert.Null(intent.Description);
+    }
+
     [Fact]
     public void Map_AddToSavingsGoal_IgnoresTheDeadlineAndZeroAmounts()
     {

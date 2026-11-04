@@ -139,6 +139,7 @@ static (bool Ok, bool IntentOk, string Detail) Evaluate(EvalCase testCase, Messa
         if (testCase.EndDate is { } endDate && intent.EndDate != endDate) problems.Add($"fim {intent.EndDate:yyyy-MM-dd}");
         if (testCase.TargetDate is { } targetDate && intent.TargetDate != targetDate) problems.Add($"prazo {intent.TargetDate:yyyy-MM-dd}");
         if (testCase.NoTargetDate && intent.TargetDate is not null) problems.Add($"prazo {intent.TargetDate:yyyy-MM-dd}");
+        if (testCase.NoDescription && intent.Description is not null) problems.Add($"nome {intent.Description}");
     }
 
     return problems.Count == 0 ? (true, true, "") : (false, true, string.Join(", ", problems));
@@ -309,7 +310,7 @@ static List<EvalCase> BuildCases()
         new(New, "quanto gastei com padaria no mês passado?", IntentType.QueryTransactions, SearchText: "padaria", Aggregation: SearchAggregation.Sum),
 
         // metas de economia
-        new(New, "quero juntar 3000 até junho", IntentType.CreateSavingsGoal, Amount: 3000m, TargetDate: NextMonthEnd(6)),
+        new(New, "quero juntar 3000 até junho", IntentType.CreateSavingsGoal, Amount: 3000m, TargetDate: NextMonthEnd(6), NoDescription: true),
         new(New, "meta de 5000 para a viagem até dezembro", IntentType.CreateSavingsGoal, Amount: 5000m, TargetDate: NextMonthEnd(12)),
         new(New, "quero guardar 1000 sem pressa", IntentType.CreateSavingsGoal, Amount: 1000m, NoTargetDate: true),
         new(New, "guardei 200 pra viagem", IntentType.AddToSavingsGoal, Amount: 200m),
@@ -356,6 +357,7 @@ record EvalCase(
     DateTime? EndDate = null,
     DateTime? TargetDate = null,
     bool NoTargetDate = false,
+    bool NoDescription = false,
     (string User, string Assistant)? Context = null);
 
 record CaseResult(EvalCase Case, MessageIntent? Intent, TimeSpan Elapsed, bool ProviderFailed, bool Ok, bool IntentOk, string Detail);
