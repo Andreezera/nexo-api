@@ -43,6 +43,11 @@ Exemplos de mensagens que o sistema entende:
 - Gráficos como imagem (por categoria e receitas x despesas dos últimos meses), desenhados no servidor com SkiaSharp
 - Desfazer e corrigir o último lançamento ("apaga o último", "corrige para 25")
 - Endpoints de relatórios (`/api/users/{telefone}/reports/...`) com os mesmos dados e gráficos, para usar fora do WhatsApp
+- Contas recorrentes ("netflix 55,90 todo dia 10"): um serviço em segundo plano gera o lançamento no dia certo, sem duplicar
+- "Como estou no mês?": quanto ainda dá para gastar por dia, previsão de fechamento do mês e o que mais subiu
+- Metas de economia ("quero juntar 3000 até junho"), com o valor a guardar por mês comparado com a sua sobra mensal
+- Perguntas livres sobre os dados ("quanto gastei com uber esse ano?"): a IA monta o filtro, o código calcula os números e a IA redige a resposta em tom natural, com uma trava contra números inventados
+- Botões de resposta rápida depois de registrar um gasto e menu em lista, que chegam como mensagens interativas
 
 ## Arquitetura
 
@@ -140,7 +145,7 @@ dotnet test tests/Nexo.Tests
 
 Os testes cobrem as regras do domínio (divisão de parcelas, remoção lógica, limites), os serviços de aplicação (conversa, alertas de limite, projeção de compra, tratamento das mensagens do WhatsApp), o mapeamento da resposta da IA, o cliente do WhatsApp (com um `HttpMessageHandler` falso), a validação da assinatura da Meta e os controllers.
 
-A avaliação de modelos de IA (`tools/Nexo.GeminiEval`) não faz parte da suíte automática por depender de rede real. Ela roda o mesmo conjunto de 54 mensagens em vários modelos do Gemini e grava o resultado em [`docs/avaliacao-modelos.md`](docs/avaliacao-modelos.md). Com `--sem-relatorio`, roda sem sobrescrever esse documento. A avaliação da primeira etapa continua em [`docs/avaliacao-gemini.md`](docs/avaliacao-gemini.md).
+A avaliação de modelos de IA (`tools/Nexo.GeminiEval`) não faz parte da suíte automática por depender de rede real. Ela roda o mesmo conjunto de 78 mensagens em vários modelos do Gemini e grava o resultado em [`docs/avaliacao-modelos.md`](docs/avaliacao-modelos.md). Com `--sem-relatorio`, roda sem sobrescrever esse documento. A avaliação da primeira etapa continua em [`docs/avaliacao-gemini.md`](docs/avaliacao-gemini.md).
 
 ## Estrutura do repositório
 

@@ -134,3 +134,23 @@ Depois de testes reais pelo WhatsApp, uma resposta com áudio levou cerca de 12 
 O apelido `gemini-flash-lite-latest` também foi executado no conjunto completo de 39 casos, com o prompt real do NEXO, e acertou 39/39 (intenção 39/39) com latência média de 0,8 s.
 
 Decisão: o modelo padrão passou de `gemini-flash-latest` para `gemini-flash-lite-latest`. O apelido foi preferido a um nome fixo porque nomes fixos de modelo são aposentados pelo provedor. O ganho foi de 3 a 6 vezes no tempo da chamada à IA, sem queda de acerto nos testes feitos. A limitação é a mesma de antes, os conjuntos são pequenos e com poucas execuções.
+
+
+## Ampliação do conjunto para 78 casos
+
+Os recursos novos de conversa (menu, resumo por mês, gráficos, desfazer e corrigir, contas recorrentes, "como estou no mês",
+perguntas livres e metas de economia) ganharam casos próprios, e o conjunto passou de 39 para 78 mensagens. Os casos conferem
+a intenção e também os campos que a IA extrai, como a palavra procurada, o período (por exemplo, "esse ano" começa em 1º de
+janeiro), o tipo (gasto ou receita), a agregação (soma, quantidade, média, maior ou lista) e o prazo de uma meta.
+
+Com o modelo padrão `gemini-flash-lite-latest`, o resultado foi de 78 acertos em 78, com latência média de 1,0 s. No caminho,
+a avaliação encontrou erros reais que foram corrigidos:
+
+- Em "em outubro", a IA preenchia só a data de início, o que faria a busca ir até hoje. As datas passaram a ser campos obrigatórios.
+- Sem período na pergunta, a IA inventava "desde o dia 1º do mês". O prompt passou a mandar deixar as datas vazias.
+- A IA sugeria uma categoria (como "Outros" ou "Alimentação") que escondia lançamentos. Com uma palavra-chave, a categoria sugerida é ignorada.
+- Em "quero juntar 3000", a IA usava o verbo "juntar" como nome da meta. O mapeamento passou a descartar verbos como nome.
+- A temperatura da IA na interpretação foi reduzida a zero, para diminuir a variação entre execuções.
+
+A limitação continua sendo a de antes: o conjunto é pequeno e a IA não é determinística, então um caso raro pode errar numa
+execução e acertar em outra. Durante os ajustes, algumas execuções erraram 1 caso em 78 antes da última correção.
