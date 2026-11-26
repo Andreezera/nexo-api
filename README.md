@@ -1,170 +1,78 @@
-# NEXO, Assistente Financeiro Inteligente via WhatsApp
+# NEXO
 
-Trabalho de Conclusão de Curso (Bacharelado em Ciência da Computação, UNESP Rio Claro), disciplinas *Projetos em Computação I* (1º semestre de 2026) e *Projetos em Computação II* (2º semestre de 2026).
+Assistente financeiro que funciona dentro do WhatsApp. Você escreve, fala ou manda a foto de uma nota fiscal, e o NEXO registra o gasto, responde perguntas e ajuda a planejar.
 
-**Autor:** André Augusto Costa Dionísio
-**Orientador:** Prof. Denis Henrique Pinheiro Salvadeo (DEMAC)
+<p>
+  <img src="docs/images/whatsapp-menu.jpg" alt="Menu do NEXO no WhatsApp" width="300">
+  &nbsp;
+  <img src="docs/images/whatsapp-limite.jpg" alt="Alerta de limite e pergunta com contexto" width="300">
+</p>
 
-## O que é
+## O que dá para fazer
 
-O NEXO é um assistente financeiro que funciona dentro do WhatsApp. O usuário escreve (ou fala, ou manda a foto de uma nota fiscal) e uma IA entende o que ele quer. Pode ser registrar um gasto, uma receita ou uma compra parcelada, mas também perguntar quanto gastou, ver o saldo, definir um limite de gasto ou simular uma compra.
-
-Exemplos de mensagens que o sistema entende:
-
-```
-"gastei 30 reais no mercado"
-"comprei um notebook de 3000 reais em 10 parcelas"
-"quanto gastei com mercado esse mês?"
-"e no mês passado?"
-"define um limite de 500 para lazer"
-"consigo comprar uma tv de 2400 em 12x?"
-```
-
-## Funcionalidades
-
-**Etapa 1 (Projetos em Computação I)**
-- Registro de despesas e receitas em linguagem natural, com extração estruturada via Gemini
-- Compras parceladas, com a divisão em parcelas feita pelo próprio sistema
-- Categorias normalizadas (enum), edição e remoção lógica de lançamentos com auditoria
-- Extração da data real da mensagem ("ontem", "sexta passada")
-
-**Etapa 2 (Projetos em Computação II)**
-- Limites de gasto por categoria, com alerta junto da resposta ao passar de 80% e ao estourar
-- Projeção de capacidade de compra, considerando o saldo, a média dos últimos meses e as parcelas já comprometidas
-- IA conversacional, que usa as últimas mensagens da conversa como contexto e responde perguntas sobre os dados do usuário
-- Registro de transações por áudio e por foto de nota fiscal
-- Integração com o WhatsApp Cloud API (webhook com assinatura, fila em segundo plano, envio da resposta)
-- Avaliação comparativa de modelos de IA ([docs/avaliacao-modelos.md](docs/avaliacao-modelos.md))
-
-**Experiência no WhatsApp**
-- Menu de ajuda (`menu`, `ajuda`, ou um "oi"), e dica do menu no primeiro contato
-- Respostas formatadas com emojis, negrito e barras de progresso (registro, saldo, limites, últimos lançamentos)
-- Resumo por mês ("resumo do mês", "resumo de outubro"): receitas, despesas, saldo, gastos por categoria e comparação com o mês anterior
-- Gráficos como imagem (por categoria e receitas x despesas dos últimos meses), desenhados no servidor com SkiaSharp
-- Desfazer e corrigir o último lançamento ("apaga o último", "corrige para 25")
-- Endpoints de relatórios (`/api/users/{telefone}/reports/...`) com os mesmos dados e gráficos, para usar fora do WhatsApp
-- Contas recorrentes ("netflix 55,90 todo dia 10"): um serviço em segundo plano gera o lançamento no dia certo, sem duplicar
-- "Como estou no mês?": quanto ainda dá para gastar por dia, previsão de fechamento do mês e o que mais subiu
-- Metas de economia ("quero juntar 3000 até junho"), com o valor a guardar por mês comparado com a sua sobra mensal
-- Perguntas livres sobre os dados ("quanto gastei com uber esse ano?"): a IA monta o filtro, o código calcula os números e a IA redige a resposta em tom natural, com uma trava contra números inventados
-- Botões de resposta rápida depois de registrar um gasto e menu em lista, que chegam como mensagens interativas
-
-## Arquitetura
-
-Solução em 4 camadas, inspirada em Clean Architecture, de forma deliberadamente simplificada (sem CQRS, sem MediatR e sem repositório genérico):
-
-![Diagrama de arquitetura](docs/diagrams/architecture-diagram.png)
-
-| Projeto | Responsabilidade |
+| Para | Mensagem de exemplo |
 |---|---|
-| `Nexo.Domain` | Entidades e regras de negócio puras (`User`, `Transaction`, `InstallmentPlan`, `BudgetLimit`, `ConversationMessage`) |
-| `Nexo.Application` | Orquestração (`ConversationService`, `MessageProcessingService`, `BudgetAlertService`, `PurchaseProjectionService`) e abstrações |
-| `Nexo.Infrastructure` | EF Core + PostgreSQL (Neon), `GeminiIntentParser`, `WhatsAppCloudMessenger` |
-| `Nexo.Api` | Controllers REST, webhook do WhatsApp, fila em segundo plano, Swagger |
+| Registrar um gasto ou receita | `gastei 30 no mercado` |
+| Registrar uma compra parcelada | `comprei um notebook de 3000 em 10 parcelas` |
+| Consultar os gastos | `quanto gastei com mercado esse mês?` e depois `e no mês passado?` |
+| Definir um limite | `limite de 500 para lazer` |
+| Saber se dá para comprar | `consigo comprar uma moto de 18000?` |
+| Ver o resumo e os gráficos | `resumo do mês`, `gráfico por categoria` |
+| Cadastrar uma conta fixa | `netflix 55,90 todo dia 10` |
+| Criar uma meta | `quero juntar 3000 até junho` |
+| Corrigir um erro | `apaga o último`, `corrige para 25` |
 
-Modelo de dados: [docs/diagrams/er-diagram.png](docs/diagrams/er-diagram.png)
-Fluxo de uma mensagem: [docs/diagrams/sequence-diagram.png](docs/diagrams/sequence-diagram.png)
-Visão do projeto: [docs/diagrams/roadmap-diagram.png](docs/diagrams/roadmap-diagram.png)
+Também aceita **áudio** e **foto de nota fiscal**. A palavra `menu` mostra as opções.
 
-## Tecnologias
+## Como foi construído
 
-- .NET 10 / ASP.NET Core
-- Entity Framework Core + Npgsql (PostgreSQL via [Neon](https://neon.tech), serverless)
-- Google Gemini API (saída estruturada por JSON schema, entrada de texto, áudio e imagem)
-- WhatsApp Cloud API (Meta)
-- xUnit + Moq (testes automatizados)
-- Swagger / Swashbuckle
+- **Etapa 1** (Projetos em Computação I): API, banco de dados, registro em linguagem natural e compras parceladas.
+- **Etapa 2** (Projetos em Computação II): WhatsApp de verdade, áudio e foto, conversa com contexto, limites, projeção de compra, gráficos, metas e contas fixas.
 
-## Como rodar localmente
+**Tecnologias:** .NET 10, PostgreSQL (Neon) com Entity Framework Core, Google Gemini, WhatsApp Cloud API e SkiaSharp.
 
-Pré-requisitos: .NET 10 SDK, uma instância PostgreSQL (ex: Neon, gratuito) e uma chave de API do Gemini ([aistudio.google.com](https://aistudio.google.com)). O uso de áudio e imagem em volume, e os testes de avaliação, pedem o faturamento ativado na chave.
+A IA entende a mensagem e redige respostas. Quem calcula os valores é o código.
+
+![Arquitetura](docs/diagrams/architecture-diagram.png)
+
+Mais detalhes:
+- [Modelo de dados](docs/diagrams/er-diagram.png)
+- [Caminho de uma mensagem](docs/diagrams/sequence-diagram.png)
+- [Comparação dos modelos de IA](docs/avaliacao-modelos.md)
+
+## Como rodar
+
+Você precisa do .NET 10 SDK, de um banco PostgreSQL e de uma chave do [Gemini](https://aistudio.google.com).
 
 ```bash
-# Configurar segredos (nunca comitados)
-dotnet user-secrets set "ConnectionStrings:Default" "<sua connection string>" --project src/Nexo.Api
-dotnet user-secrets set "Gemini:ApiKey" "<sua chave>" --project src/Nexo.Api
-
-# Aplicar migrations
+dotnet user-secrets set "ConnectionStrings:Default" "<connection string>" --project src/Nexo.Api
+dotnet user-secrets set "Gemini:ApiKey" "<chave>" --project src/Nexo.Api
 dotnet ef database update --project src/Nexo.Infrastructure --startup-project src/Nexo.Api
-
-# Rodar a API
-dotnet run --project src/Nexo.Api
+dotnet run --project src/Nexo.Api --launch-profile https
 ```
 
-Depois de rodar, abra **https://localhost:7117/index.html** no navegador. O Swagger UI abre com todos os endpoints documentados e testáveis por ali mesmo. (Evite acessar pela porta http 5161. A spec do Swagger é montada em cima da porta https, então testar "Try it out" a partir da 5161 dispara um erro de CORS por serem origens diferentes.)
+O Swagger abre em https://localhost:7117/index.html e permite testar sem o WhatsApp.
 
-### Testando pelo Swagger ou curl
+Para os testes automatizados: `dotnet test tests/Nexo.Tests`.
 
-O endpoint abaixo simula uma mensagem de texto do WhatsApp. Via `curl` não há restrição de CORS (é uma limitação só de navegador), então qualquer uma das portas funciona:
+### Com o WhatsApp
 
-```bash
-curl -X POST http://localhost:5161/api/webhook/whatsapp \
-  -H "Content-Type: application/json" \
-  -d '{"from":"5511999999999","text":{"body":"gastei 30 reais no mercado"}}'
-```
-
-Para testar áudio ou foto de nota fiscal, use o endpoint de upload (no Swagger aparece um seletor de arquivo):
-
-```bash
-curl -X POST http://localhost:5161/api/webhook/whatsapp/media \
-  -F "from=5511999999999" \
-  -F "file=@nota-fiscal.jpg;type=image/jpeg"
-```
-
-Outros endpoints:
-
-| Método | Rota | O que faz |
-|---|---|---|
-| GET | `/api/users/{telefone}/transactions` | Lista os lançamentos |
-| GET | `/api/users/{telefone}/transactions/summary` | Receita total, despesa total e saldo |
-| PUT / DELETE | `/api/transactions/{id}` | Corrige ou remove (remoção lógica) um lançamento |
-| GET | `/api/users/{telefone}/budget-limits` | Limites de gasto do mês, com quanto já foi gasto |
-| PUT / DELETE | `/api/users/{telefone}/budget-limits/{categoria}` | Define ou remove o limite de uma categoria |
-| GET | `/api/users/{telefone}/purchase-projection?price=3000&installments=10` | Simula uma compra |
-
-### WhatsApp de verdade
-
-O endpoint real da Meta é `/api/webhook/whatsapp/cloud` (verificação por GET e mensagens por POST, com assinatura HMAC conferida). Ele lê estes segredos:
+Cadastre também os dados do app da Meta:
 
 ```bash
 dotnet user-secrets set "WhatsApp:AccessToken" "<token>" --project src/Nexo.Api
 dotnet user-secrets set "WhatsApp:PhoneNumberId" "<phone number id>" --project src/Nexo.Api
-dotnet user-secrets set "WhatsApp:VerifyToken" "<texto que você escolher>" --project src/Nexo.Api
-dotnet user-secrets set "WhatsApp:AppSecret" "<app secret do app na Meta>" --project src/Nexo.Api
+dotnet user-secrets set "WhatsApp:VerifyToken" "<texto à sua escolha>" --project src/Nexo.Api
+dotnet user-secrets set "WhatsApp:AppSecret" "<app secret>" --project src/Nexo.Api
 ```
 
-Como a Meta precisa alcançar a API pela internet, é preciso um túnel (por exemplo `ngrok http 5161`). No painel do app, a Callback URL é `https://<seu-tunel>/api/webhook/whatsapp/cloud`, com o mesmo token de verificação, e o campo `messages` assinado. A versão da Graph API pode ser trocada em `WhatsApp:GraphApiVersion`.
-
-Para subir tudo de uma vez (API, túnel Cloudflare e atualização automática do webhook da Meta), use `scripts/iniciar-demo.ps1`. O passo a passo para rodar em outra máquina está em [docs/rodar-no-notebook.md](docs/rodar-no-notebook.md).
-
-## Testes
-
-```bash
-dotnet test tests/Nexo.Tests
-```
-
-Os testes cobrem as regras do domínio (divisão de parcelas, remoção lógica, limites), os serviços de aplicação (conversa, alertas de limite, projeção de compra, tratamento das mensagens do WhatsApp), o mapeamento da resposta da IA, o cliente do WhatsApp (com um `HttpMessageHandler` falso), a validação da assinatura da Meta e os controllers.
-
-A avaliação de modelos de IA (`tools/Nexo.GeminiEval`) não faz parte da suíte automática por depender de rede real. Ela roda o mesmo conjunto de 78 mensagens em vários modelos do Gemini e grava o resultado em [`docs/avaliacao-modelos.md`](docs/avaliacao-modelos.md). Com `--sem-relatorio`, roda sem sobrescrever esse documento. A avaliação da primeira etapa continua em [`docs/avaliacao-gemini.md`](docs/avaliacao-gemini.md).
-
-## Estrutura do repositório
-
-```
-src/
-  Nexo.Domain/          entidades e regras de negócio
-  Nexo.Application/     orquestração e abstrações
-  Nexo.Infrastructure/  EF Core, repositórios, Gemini, WhatsApp
-  Nexo.Api/             controllers, webhook, fila, Swagger
-tests/
-  Nexo.Tests/           testes automatizados (xUnit + Moq)
-tools/
-  Nexo.GeminiEval/      avaliação comparativa de modelos (manual)
-docs/
-  diagrams/              diagramas de arquitetura, modelo de dados, fluxo e visão do projeto
-  avaliacao-gemini.md    avaliação da etapa 1
-  avaliacao-modelos.md   avaliação comparativa de modelos (etapa 2)
-```
+O script `scripts/iniciar-demo.ps1` sobe a API, abre um túnel e atualiza o endereço na Meta. O passo a passo para outra máquina está em [docs/rodar-no-notebook.md](docs/rodar-no-notebook.md).
 
 ## Próximos passos
 
-Ideias que ficaram fora desta etapa: leitura de extratos bancários em PDF, status do parcelamento (quitação antecipada e cancelamento) com suporte a juros, e alertas proativos (avisar sem o usuário perguntar).
+Alertas enviados sem o usuário perguntar, leitura de extrato em PDF e hospedagem com endereço fixo.
+
+---
+
+Trabalho de Conclusão de Curso em Ciência da Computação, UNESP Rio Claro, 2026.
+**Autor:** André Augusto Costa Dionísio. **Orientador:** Prof. Denis Henrique Pinheiro Salvadeo (DEMAC).
